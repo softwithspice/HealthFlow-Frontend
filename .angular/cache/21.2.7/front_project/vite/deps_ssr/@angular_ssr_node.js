@@ -7,11 +7,11 @@ import {
   renderApplication,
   renderModule,
   validateUrl
-} from "./chunk-XHQ6K37A.js";
-import "./chunk-WC4PITUE.js";
+} from "./chunk-4MYZC5SP.js";
 import "./chunk-VSEETMKQ.js";
 import "./chunk-YKBWO4AI.js";
 import "./chunk-IBC4FN27.js";
+import "./chunk-WC4PITUE.js";
 import {
   __spreadProps,
   __spreadValues
