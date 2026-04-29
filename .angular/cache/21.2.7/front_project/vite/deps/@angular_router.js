@@ -1,14 +1,20 @@
 import {
+<<<<<<< HEAD
   Title
 } from "./chunk-T6DYPV7D.js";
 import "./chunk-ZNYMOTPF.js";
 import {
   HashLocationStrategy,
+=======
+  HashLocationStrategy,
+  LOCATION_INITIALIZED,
+>>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
   Location,
   LocationStrategy,
   NavigationAdapterForLocation,
   PRECOMMIT_HANDLER_SUPPORTED,
   PathLocationStrategy,
+<<<<<<< HEAD
   PlatformNavigation,
   ViewportScroller
 } from "./chunk-SNRDF3P7.js";
@@ -16,6 +22,13 @@ import {
   LOCATION_INITIALIZED,
   PlatformLocation
 } from "./chunk-LCDC2CEE.js";
+=======
+  PlatformLocation,
+  PlatformNavigation,
+  Title,
+  ViewportScroller
+} from "./chunk-D7BVPTYN.js";
+>>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
 import {
   APP_BOOTSTRAP_LISTENER,
   ApplicationRef,
@@ -122,9 +135,15 @@ import {
   ɵɵloadQuery,
   ɵɵqueryRefresh,
   ɵɵsanitizeUrlOrResourceUrl
+<<<<<<< HEAD
 } from "./chunk-334UFFZ4.js";
 
 // ../node_modules/@angular/router/fesm2022/_router-chunk.mjs
+=======
+} from "./chunk-CGXPGPGT.js";
+
+// node_modules/@angular/router/fesm2022/_router-chunk.mjs
+>>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
 var PRIMARY_OUTLET = "primary";
 var RouteTitleKey = /* @__PURE__ */ Symbol("RouteTitle");
 var ParamsAsMap = class {
@@ -4495,7 +4514,11 @@ function validateCommands(commands) {
   }
 }
 
+<<<<<<< HEAD
 // ../node_modules/@angular/router/fesm2022/_router_module-chunk.mjs
+=======
+// node_modules/@angular/router/fesm2022/_router_module-chunk.mjs
+>>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
 var ReactiveRouterState = class _ReactiveRouterState {
   router = inject(Router);
   stateManager = inject(StateManager);
@@ -5947,7 +5970,11 @@ function provideRouterInitializer() {
   }];
 }
 
+<<<<<<< HEAD
 // ../node_modules/@angular/router/fesm2022/router.mjs
+=======
+// node_modules/@angular/router/fesm2022/router.mjs
+>>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
 function mapToCanMatch(providers) {
   return providers.map((provider) => (...params) => inject(provider).canMatch(...params));
 }
