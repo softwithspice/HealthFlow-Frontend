@@ -18,6 +18,8 @@ export class Abonnement implements OnInit {
   errorMessage = '';
   successMessage = '';
 
+  detectedRole = 'bloomer';
+
   paymentData = {
     nomCarte: '',
     numeroCarte: '',
@@ -27,9 +29,9 @@ export class Abonnement implements OnInit {
   };
 
   plans = [
-    { id: 'MOIS_1', label: '1 MONTH',  total: 300,  perMonth: 300 },
-    { id: 'MOIS_3', label: '3 MONTHS', total: 750,  perMonth: 250 },
-    { id: 'MOIS_6', label: '6 MONTHS', total: 1320, perMonth: 220 },
+    { id: 'MOIS_1', label: '1 MONTH',   total: 300,  perMonth: 300 },
+    { id: 'MOIS_3', label: '3 MONTHS',  total: 750,  perMonth: 250 },
+    { id: 'MOIS_6', label: '6 MONTHS',  total: 1320, perMonth: 220 },
     { id: 'AN_1',   label: '1 YEAR ⭐', total: 2160, perMonth: 180 },
   ];
 
@@ -41,10 +43,37 @@ export class Abonnement implements OnInit {
   ngOnInit(): void {
     const saved = sessionStorage.getItem('register_data');
     if (!saved) {
-      this.router.navigate(['/inscrire/nutritionist']);
+      this.router.navigate(['/inscrire']);
       return;
     }
     this.registerData = JSON.parse(saved);
+    if (this.registerData?.role) {
+      this.detectedRole = this.registerData.role.toLowerCase();
+    }
+  }
+
+  // ✅ Redirection selon les routes exactes de app.routes.ts
+  private redirectByRole(role: string): void {
+    const r = (role || '').toLowerCase();
+    if (r === 'coach') {
+      this.router.navigate(['/dashboard/coach']);
+    } else if (r === 'nutritionist') {
+      this.router.navigate(['/dashboard/nutritionist']);
+    } else {
+      // bloomer → patient dashboard
+      this.router.navigate(['/dashboard/bloomer']);
+    }
+  }
+
+  // ✅ Lien "Log in" dynamique selon le rôle
+  getLoginRoute(): string[] {
+    if (this.detectedRole === 'coach') {
+      return ['/authentification', 'coach'];
+    } else if (this.detectedRole === 'nutritionist') {
+      return ['/authentification', 'nutritionist'];
+    } else {
+      return ['/authentification', 'bloomer'];
+    }
   }
 
   selectPlan(planId: string): void {
@@ -73,11 +102,13 @@ export class Abonnement implements OnInit {
   }
 
   isFormValid(): boolean {
-    return !!this.selectedPlan &&
+    return (
+      !!this.selectedPlan &&
       !!this.paymentData.nomCarte.trim() &&
       this.paymentData.numeroCarte.replace(/\s/g, '').length === 16 &&
       this.paymentData.dateExpiration.length === 5 &&
-      this.paymentData.cvv.length === 3;
+      this.paymentData.cvv.length === 3
+    );
   }
 
   subscribe(): void {
@@ -88,13 +119,12 @@ export class Abonnement implements OnInit {
 
     this.loading = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
-    // ── Step 1: Register → reçoit le token directement ──────────
-    const registerPayload = { ...this.registerData, typeAbonnement: this.selectedPlan };
+    const registerPayload = { ...this.registerData };
 
     this.http.post<any>(`${this.apiUrl}/auth/register`, registerPayload).subscribe({
       next: (registerResponse) => {
-        // ✅ Le register retourne déjà le token — pas besoin de login séparé
         const token = registerResponse.token;
 
         if (!token) {
@@ -103,36 +133,40 @@ export class Abonnement implements OnInit {
           return;
         }
 
-        // Sauvegarder le token
         localStorage.setItem('token', token);
         localStorage.setItem('role', registerResponse.role);
 
-        // ── Step 2: Payer avec le token ──────────────────────────
-        const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+        const headers = new HttpHeaders({
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        });
+
         const paymentPayload = {
-          nomCarte: this.paymentData.nomCarte,
-          numeroCarte: this.paymentData.numeroCarte.replace(/\s/g, ''),
+          nomCarte:       this.paymentData.nomCarte.trim(),
+          numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
           dateExpiration: this.paymentData.dateExpiration,
-          cvv: this.paymentData.cvv,
+          cvv:            this.paymentData.cvv,
           typeAbonnement: this.selectedPlan
         };
 
         this.http.post<any>(`${this.apiUrl}/abonnements/payer`, paymentPayload, { headers }).subscribe({
           next: () => {
             this.loading = false;
-            this.successMessage = '✅ Subscription activated! Redirecting...';
+            this.successMessage = 'Abonnement activé ! Redirection...';
             sessionStorage.removeItem('register_data');
-            setTimeout(() => this.router.navigate(['/dashboard/nutritionist']), 1500);
+            setTimeout(() => this.redirectByRole(registerResponse.role), 1500);
           },
           error: (err) => {
             this.loading = false;
-            this.errorMessage = err.error?.error || err.error?.message || 'Payment failed. Please try again.';
+            this.errorMessage = err.error?.error || err.error?.message || 'Paiement échoué.';
+            console.error('Payment error:', err.error);
           }
         });
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.message || err.error?.error || 'Registration failed. Please try again.';
+        this.errorMessage = err.error?.message || err.error?.error || 'Inscription échouée.';
+        console.error('Register error:', err.error);
       }
     });
   }

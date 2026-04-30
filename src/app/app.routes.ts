@@ -9,17 +9,24 @@ import { RequestMail } from './components/authentification/forget-password/reque
 import { VerifyCode } from './components/authentification/forget-password/verify-code/verify-code';
 import { ResetPassword } from './components/authentification/forget-password/reset-password/reset-password';
 import { NutritionistDashboard } from './components/dashboard/nutritionist-dashboard/nutritionist-dashboard/nutritionist-dashboard';
+import { CoachDashboard } from './components/dashboard/coach-dashboard/coach-dashboard/coach-dashboard';
+import { PatientDashboard } from './components/dashboard/patient-dashboard/patient-dashboard/patient-dashboard';
 
 export const routes: Routes = [
-  { path: 'Acceuil',                    title: 'Acceuil',         component: Acceuil },
+  { path: 'Acceuil',                    title: 'Acceuil',          component: Acceuil },
   { path: 'authentification/:role',     title: 'authentification', component: Authentification },
   { path: 'inscrire/nutritionist',      component: InscritNutritionist },
   { path: 'inscrire/coach',             component: InscritCoach },
   { path: 'inscrire/bloomer',           component: InscritBloomer },
-  { path: 'abonnement',                 component: Abonnement },          // ← nouveau
+  { path: 'abonnement',                 component: Abonnement },
+
+  // ✅ Dashboard routes — un par rôle
   { path: 'dashboard/nutritionist',     component: NutritionistDashboard },
+  { path: 'dashboard/coach',            component: CoachDashboard },
+  { path: 'dashboard/bloomer',          component: PatientDashboard },
+
   { path: 'forget-password',            component: RequestMail },
-  { path: 'verify-code',               component: VerifyCode },
-  { path: 'reset-password',            component: ResetPassword },
-  { path: '',                           redirectTo: 'Acceuil', pathMatch: 'full' },
+  { path: 'verify-code',                component: VerifyCode },
+  { path: 'reset-password',             component: ResetPassword },
+  { path: '',                            redirectTo: 'Acceuil', pathMatch: 'full' },
 ];

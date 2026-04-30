@@ -78,7 +78,7 @@
       <div class="error-msg">{{ errorMessage }}</div>
     }
     @if (successMessage) {
-      <div class="success-msg">✅ {{ successMessage }}</div>
+      <div class="success-msg">{{ successMessage }}</div>
     }
 
     <!-- Submit -->
@@ -90,9 +90,10 @@
       @if (loading)  { <span class="spinner"></span> }
     </button>
 
+    <!-- ✅ Lien login dynamique selon le rôle détecté -->
     <p class="login-link">
       Already have an account?
-      <a [routerLink]="['/authentification', 'nutritionist']">Log in</a>
+      <a [routerLink]="getLoginRoute()">Log in</a>
     </p>
 
   </div>
