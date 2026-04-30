@@ -159,3 +159,31 @@ form + span span {
     cursor: pointer;
     display: inline;
 }
+/* Fix layout Angular */
+:host {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.card {
+  background: white;
+  border-radius: 24px;
+  padding: 2.5rem 2.5rem;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: 0 8px 40px rgba(168, 85, 247, 0.10);
+  overflow: hidden;
+}
+
+form {
+  margin: 0 !important;
+  width: 100%;
+}

@@ -1,33 +1,25 @@
 import { Routes } from '@angular/router';
 import { Acceuil } from './components/acceuil/acceuil';
 import { Authentification } from './components/authentification/authentification';
-<<<<<<< HEAD
 import { InscritNutritionist } from './components/inscrit-nutritionist/inscrit-nutritionist';
 import { InscritCoach } from './components/inscrit-coach/inscrit-coach';
 import { InscritBloomer } from './components/inscrit-bloomer/inscrit-bloomer';
-=======
-import { InscritNutritionist } from './components/inscrit/inscrit-nutritionist/inscrit-nutritionist';
-import { InscritCoach } from './components/inscrit/inscrit-coach/inscrit-coach';
-import { InscritBloomer } from './components/inscrit/inscrit-bloomer/inscrit-bloomer';
-
->>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
+import { NutritionistDashboard } from './components/nutritionist-dashboard/nutritionist-dashboard';
+import { Abonnement } from './components/abonnement/abonnement';
+import { RequestMail } from './components/authentification/forget-password/request-mail/request-mail';
+import { VerifyCode } from './components/authentification/forget-password/verify-code/verify-code';
+import { ResetPassword } from './components/authentification/forget-password/reset-password/reset-password';
 
 export const routes: Routes = [
-    {path:"Acceuil",title:"Acceuil",component:Acceuil},
-    {path:"authentification/:role",title:"authentification",component:Authentification},
-    {
-        path:"inscrire/nutritionist",component:InscritNutritionist
-    },
-      {
-        path:"inscrire/coach",component:InscritCoach
-    },  {
-<<<<<<< HEAD
-        path:"inscrire/bloomer",component:InscritBloomer 
-=======
-        path:"inscrire/bloomer",component:InscritBloomer
->>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
-    },
-    {path:'' ,redirectTo:"Acceuil",pathMatch:'full'
-
-    }
+  { path: 'Acceuil',                    title: 'Acceuil',         component: Acceuil },
+  { path: 'authentification/:role',     title: 'authentification', component: Authentification },
+  { path: 'inscrire/nutritionist',      component: InscritNutritionist },
+  { path: 'inscrire/coach',             component: InscritCoach },
+  { path: 'inscrire/bloomer',           component: InscritBloomer },
+  { path: 'abonnement',                 component: Abonnement },          // ← nouveau
+  { path: 'dashboard/nutritionist',     component: NutritionistDashboard },
+  { path: 'forget-password',            component: RequestMail },
+  { path: 'verify-code',               component: VerifyCode },
+  { path: 'reset-password',            component: ResetPassword },
+  { path: '',                           redirectTo: 'Acceuil', pathMatch: 'full' },
 ];

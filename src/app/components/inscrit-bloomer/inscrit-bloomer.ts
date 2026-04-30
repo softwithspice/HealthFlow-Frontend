@@ -1,15 +1,9 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';  // ← ajouter Router
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../services/auth-service';
 
-@Component({
-  selector: 'app-inscrit-bloomer',
-  imports: [RouterLink, FormsModule, CommonModule],
-  templateUrl: './inscrit-bloomer.html',
-  styleUrl: './inscrit-bloomer.css',
-})
 export class InscritBloomer {
   confirmPwd = '';
   agreed = false;
@@ -28,7 +22,7 @@ export class InscritBloomer {
     role: 'BLOOMER',
   };
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private router: Router) {} // ← ajouter Router
 
   register() {
     if (!this.agreed) {
@@ -40,7 +34,14 @@ export class InscritBloomer {
       return;
     }
     this.authService.register(this.formData).subscribe({
-      next: () => alert('Bloomer inscrit avec succès !'),
+      next: () => {
+        alert('Bloomer inscrit avec succès !');
+        this.router.navigate(['/dashboard/bloomer']); // ← REDIRECTION
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Erreur lors de l\'inscription : ' + err.message);
+      }
     });
   }
 }

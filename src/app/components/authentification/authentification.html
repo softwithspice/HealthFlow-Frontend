@@ -1,28 +1,33 @@
- <div class="body">
-
-<div class="card">
+<div class="body">
+  <div class="card">
     <h1>Welcome Back!</h1>
     <span class="subtitle">Log in to continue to HealthFlow</span>
- 
-    <form action="">
+
+    <form (ngSubmit)="login()">
+
       <label for="email">Email</label>
-      <input id="email" type="text" placeholder="ahmed@email.com" />
- 
+      <input id="email" type="email"
+             [(ngModel)]="email"
+             name="email"
+             placeholder="ahmed@email.com" required/>
+
       <label for="password">Password</label>
-      <input id="password" type="password" placeholder="••••••••" />
- 
+      <input id="password" type="password"
+             [(ngModel)]="pwd"
+             name="pwd"
+             placeholder="••••••••" required/>
+
       <button type="submit" class="btn-login">Log In</button>
-<<<<<<< HEAD
- 
+
       <p class="signup-row">
-=======
-      <a class="signup-row" >Forget password?</a>
- 
-      <p class="signup-row">
-        
->>>>>>> 7d51e85d931d9be534ee41817055b31af3683d78
-        Want to subscribe?
-        <a [routerLink]="['/inscrire',role]">Sign Up</a>
+        <a [routerLink]="['/forget-password']">Forget password?</a>
       </p>
+
+      <p class="signup-row">
+        Want to subscribe?
+        <a [routerLink]="['/inscrire', role]">Sign Up</a>
+      </p>
+
     </form>
-  </div> </div>
+  </div>
+</div>

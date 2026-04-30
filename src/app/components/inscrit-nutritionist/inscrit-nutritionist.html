@@ -13,15 +13,15 @@
     <h1>Join HealthFlow</h1>
     <p class="subtitle">Subscribe as a Nutritionist 🥗</p>
 
-    <form (ngSubmit)="register()">
+    <form #inscritForm="ngForm">
 
       <p class="section-label">Personal info</p>
-      <div class="grid-2">
-        <div class="field">
+      <div class="row g-3">
+        <div class="col-md-6">
           <label>First name</label>
           <input type="text" [(ngModel)]="formData.prenom" name="prenom" placeholder="First name" required>
         </div>
-        <div class="field">
+        <div class="col-md-6">
           <label>Last name</label>
           <input type="text" [(ngModel)]="formData.nom" name="nom" placeholder="Last name" required>
         </div>
@@ -57,18 +57,50 @@
         </select>
       </div>
 
-      <div class="field">
-        <label>Subscription plan</label>
-        <input type="text" [(ngModel)]="formData.typeAbonnement" name="typeAbonnement" placeholder="e.g. Basic, Pro, Premium">
+      <p class="section-label">Subscription plan</p>
+      <div class="plan-grid">
+
+        <div class="plan-card" [class.selected]="formData.typeAbonnement === 'MOIS_1'"
+             (click)="formData.typeAbonnement = 'MOIS_1'">
+          <div class="plan-check"></div>
+          <div class="plan-duration">1 Month</div>
+          <div class="plan-price">300 <span>DT</span></div>
+          <div class="plan-save">300 DT / month</div>
+        </div>
+
+        <div class="plan-card" [class.selected]="formData.typeAbonnement === 'MOIS_3'"
+             (click)="formData.typeAbonnement = 'MOIS_3'">
+          <div class="plan-check"></div>
+          <div class="plan-duration">3 Months</div>
+          <div class="plan-price">750 <span>DT</span></div>
+          <div class="plan-save">250 DT / month</div>
+        </div>
+
+        <div class="plan-card" [class.selected]="formData.typeAbonnement === 'MOIS_6'"
+             (click)="formData.typeAbonnement = 'MOIS_6'">
+          <div class="plan-check"></div>
+          <div class="plan-duration">6 Months</div>
+          <div class="plan-price">1320 <span>DT</span></div>
+          <div class="plan-save">220 DT / month</div>
+        </div>
+
+        <div class="plan-card" [class.selected]="formData.typeAbonnement === 'AN_1'"
+             (click)="formData.typeAbonnement = 'AN_1'">
+          <div class="plan-check"></div>
+          <div class="plan-duration">1 Year ⭐</div>
+          <div class="plan-price">2160 <span>DT</span></div>
+          <div class="plan-save">180 DT / month</div>
+        </div>
+
       </div>
 
       <p class="section-label">Security</p>
-      <div class="grid-2">
-        <div class="field">
+      <div class="row g-3">
+        <div class="col-md-6">
           <label>Password</label>
           <input type="password" [(ngModel)]="formData.pwd" name="pwd" placeholder="••••••••" required>
         </div>
-        <div class="field">
+        <div class="col-md-6">
           <label>Confirm password</label>
           <input type="password" [(ngModel)]="confirmPwd" name="confirmPwd" placeholder="••••••••">
         </div>
@@ -81,7 +113,9 @@
         </label>
       </div>
 
-      <button type="submit" class="btn-submit" [disabled]="!agreed">Subscribe now 🎉</button>
+      <!-- ✅ type="button" pour éviter le submit du formulaire -->
+      <button type="button" [disabled]="!agreed" (click)="register()">Subscribe now 🎉</button>
+
     </form>
 
     <p class="login-link">

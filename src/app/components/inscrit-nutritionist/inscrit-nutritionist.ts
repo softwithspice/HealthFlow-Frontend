@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../services/auth-service';
 
 @Component({
   selector: 'app-inscrit-nutritionist',
+  standalone: true,
   imports: [RouterLink, FormsModule, CommonModule],
   templateUrl: './inscrit-nutritionist.html',
   styleUrl: './inscrit-nutritionist.css',
@@ -26,7 +26,7 @@ export class InscritNutritionist {
     role: 'NUTRITIONIST',
   };
 
-  constructor(private authService: AuthService) {}
+  constructor(private router: Router) {}
 
   register() {
     if (!this.agreed) {
@@ -37,8 +37,13 @@ export class InscritNutritionist {
       alert('Les mots de passe ne correspondent pas.');
       return;
     }
-    this.authService.register(this.formData).subscribe({
-      next: () => alert('Nutritionniste inscrit avec succès !'),
-    });
+
+    // ✅ Sauvegarde les données et redirige vers la page abonnement
+    sessionStorage.setItem('register_data', JSON.stringify(this.formData));
+    this.router.navigate(['/abonnement']);
+  }
+
+  selectPlan(plan: string) {
+    this.formData.typeAbonnement = plan;
   }
 }
