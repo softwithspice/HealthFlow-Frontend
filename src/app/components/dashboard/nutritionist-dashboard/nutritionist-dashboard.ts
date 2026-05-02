@@ -6,8 +6,8 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
 import { RendezVousService } from '../../../services/rendez-vous';
 import { ConsultationService } from '../../../services/consultation';
-import { RendezVous } from '../../../../interfaces/rendez-vous';
-import { Consultation } from '../../../../interfaces/consultation';
+import { RendezVous } from '../../../interfaces/rendez-vous';
+import { Consultation } from '../../../interfaces/consultation';
 
 export interface RepasForm {
   typeRepas: string;
