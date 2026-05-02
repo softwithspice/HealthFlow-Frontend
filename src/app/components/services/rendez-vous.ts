@@ -4,7 +4,10 @@ import { Observable } from 'rxjs';
 import { RendezVous } from '../../interfaces/rendez-vous';
 
 @Injectable({ providedIn: 'root' })
-export class RendezVousService { // ✅ renamed
+export class RendezVousService {
+  getByPatient(patientId: number) {
+    throw new Error('Method not implemented.');
+  } // ✅ renamed
   private api = 'http://localhost:8085/api/rendez-vous';
 
   constructor(private http: HttpClient) {}
