@@ -166,9 +166,8 @@ export class NutritionistDashboard implements OnInit {
   }
 
   openConversation(userId: number): void {
-    console.log('Conversation patient', userId);
-  }
-
+  this.router.navigate(['/conversation', userId]);
+}
   openParametres(consultationId: number): void {
     console.log('Paramètres consultation', consultationId);
   }

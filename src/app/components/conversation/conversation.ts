@@ -1,14 +1,13 @@
 import {
   Component, OnInit, OnDestroy, NgZone,
-  ViewChild, ElementRef, AfterViewChecked
+  ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-
-// ── Interfaces aligned with backend DTOs ──────────────────────────────────
 
 export interface MessageDTO {
   id: number;
@@ -30,8 +29,6 @@ export interface ConversationDTO {
   messages: MessageDTO[];
 }
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 @Component({
   selector: 'app-conversation',
   standalone: true,
@@ -43,15 +40,12 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   @ViewChild('messagesEl') private messagesEl!: ElementRef<HTMLDivElement>;
 
-  // ── Config ──────────────────────────────────────────────────────────────
-  /** Role of the logged-in user — switch to 'PATIENT' for the patient side */
   readonly currentRole: 'NUTRITIONIST' | 'PATIENT' = 'NUTRITIONIST';
-  readonly currentUserId = 1;             // ID of the logged-in user
-  readonly nutritionistId = 1;            // used when role = NUTRITIONIST
+  readonly currentUserId = 1;
+  readonly nutritionistId = 1;
 
-  private readonly apiUrl = '/api';
+  private readonly apiUrl = 'http://localhost:8084/api';
 
-  // ── State ───────────────────────────────────────────────────────────────
   conversations: ConversationDTO[] = [];
   selectedConv: ConversationDTO | null = null;
   messages: MessageDTO[] = [];
@@ -74,12 +68,19 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     'av-rose', 'av-plum', 'av-sage', 'av-amber', 'av-teal'
   ];
 
-  constructor(private http: HttpClient, private ngZone: NgZone) { }
-
-  // ── Lifecycle ────────────────────────────────────────────────────────────
+  constructor(
+    private http: HttpClient,
+    private ngZone: NgZone,
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
+  ) { }
 
   ngOnInit(): void {
     this.loadConversations();
+    const patientId = this.route.snapshot.paramMap.get('patientId');
+    if (patientId) {
+      this.autoOpenOrCreateConversation(Number(patientId));
+    }
   }
 
   ngAfterViewChecked(): void {
@@ -93,7 +94,22 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.stopPolling();
   }
 
-  // ── Data loading ─────────────────────────────────────────────────────────
+  // ── Auto open or create ───────────────────────────────────────────────────
+
+  autoOpenOrCreateConversation(patientId: number): void {
+    const payload = { patientId, nutritionistId: this.nutritionistId };
+    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
+      next: conv => this.ngZone.run(() => {
+        const idx = this.conversations.findIndex(c => c.id === conv.id);
+        if (idx === -1) this.conversations = [conv, ...this.conversations];
+        this.selectConversation(conv);
+        this.cdr.detectChanges();
+      }),
+      error: err => console.error('Erreur auto-open', err)
+    });
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────
 
   loadConversations(): void {
     const url = this.currentRole === 'NUTRITIONIST'
@@ -105,6 +121,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
         this.conversations = data.sort(
           (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         );
+        this.cdr.detectChanges();
       }),
       error: err => console.error('Erreur chargement conversations', err)
     });
@@ -113,6 +130,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   selectConversation(conv: ConversationDTO): void {
     this.selectedConv = conv;
     this.messages = [];
+    this.loadingMessages = false; // ← reset immédiat
+    this.stopPolling();
     this.loadMessages(conv.id);
     this.startPolling(conv.id);
     if (conv.status === 'ACTIVE') {
@@ -127,16 +146,20 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
         this.messages = data;
         this.loadingMessages = false;
         this.shouldScrollBottom = true;
+        this.cdr.detectChanges();
       }),
-      error: () => this.ngZone.run(() => { this.loadingMessages = false; })
+      error: () => this.ngZone.run(() => {
+        this.loadingMessages = false;
+        this.cdr.detectChanges();
+      })
     });
   }
 
-  // ── Polling ──────────────────────────────────────────────────────────────
+  // ── Polling ───────────────────────────────────────────────────────────────
 
   private startPolling(convId: number): void {
     this.stopPolling();
-    this.pollSub = interval(3000).pipe(
+    this.pollSub = interval(5000).pipe(
       switchMap(() => this.http.get<MessageDTO[]>(`${this.apiUrl}/messages/conversation/${convId}`))
     ).subscribe({
       next: data => this.ngZone.run(() => {
@@ -148,6 +171,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
             this.markAsRead(convId);
           }
         }
+        this.cdr.detectChanges();
       })
     });
   }
@@ -157,28 +181,51 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.pollSub = null;
   }
 
-  // ── Send message ─────────────────────────────────────────────────────────
+  // ── Send message — affichage immédiat ─────────────────────────────────────
 
   sendMessage(): void {
     if (!this.newMessage.trim() || !this.selectedConv || this.sendingMessage) return;
+
+    const content = this.newMessage.trim();
+    this.newMessage = '';
+
+    // Affiche le message immédiatement (optimistic UI)
+    const tempMsg: MessageDTO = {
+      id: Date.now(), // id temporaire
+      conversationId: this.selectedConv.id,
+      senderId: this.currentUserId,
+      senderRole: this.currentRole,
+      content: content,
+      isRead: false,
+      sentAt: new Date().toISOString()
+    };
+    this.messages = [...this.messages, tempMsg];
+    this.shouldScrollBottom = true;
+    this.cdr.detectChanges();
 
     this.sendingMessage = true;
     const payload: Partial<MessageDTO> = {
       conversationId: this.selectedConv.id,
       senderId: this.currentUserId,
       senderRole: this.currentRole,
-      content: this.newMessage.trim()
+      content: content
     };
 
     this.http.post<MessageDTO>(`${this.apiUrl}/messages`, payload).subscribe({
       next: msg => this.ngZone.run(() => {
-        this.messages.push(msg);
-        this.newMessage = '';
+        // Remplace le message temporaire par le vrai
+        this.messages = this.messages.map(m => m.id === tempMsg.id ? msg : m);
         this.sendingMessage = false;
         this.shouldScrollBottom = true;
-        this.loadConversations();
+        this.cdr.detectChanges();
       }),
-      error: () => this.ngZone.run(() => { this.sendingMessage = false; })
+      error: () => this.ngZone.run(() => {
+        // Supprime le message temporaire en cas d'erreur
+        this.messages = this.messages.filter(m => m.id !== tempMsg.id);
+        this.newMessage = content; // remet le texte
+        this.sendingMessage = false;
+        this.cdr.detectChanges();
+      })
     });
   }
 
@@ -189,14 +236,13 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     }
   }
 
-  // ── Read receipt ─────────────────────────────────────────────────────────
+  // ── Read receipt ──────────────────────────────────────────────────────────
 
   markAsRead(convId: number): void {
-    const readerRole = this.currentRole;
     this.http.patch(
-      `${this.apiUrl}/messages/conversation/${convId}/read?readerRole=${readerRole}`,
+      `${this.apiUrl}/messages/conversation/${convId}/read?readerRole=${this.currentRole}`,
       {}
-    ).subscribe();
+    ).subscribe({ next: () => {}, error: () => {} });
   }
 
   // ── Conversation actions ──────────────────────────────────────────────────
@@ -208,18 +254,20 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
         if (this.selectedConv?.id === id) this.selectedConv = updated;
         this.stopPolling();
         this.loadConversations();
+        this.cdr.detectChanges();
       })
     });
   }
 
   deleteConversation(id: number): void {
-    if (!confirm('Supprimer cette conversation ? Cette action est irréversible.')) return;
+    if (!confirm('Supprimer cette conversation ?')) return;
     this.http.delete(`${this.apiUrl}/conversations/${id}`).subscribe({
       next: () => this.ngZone.run(() => {
         this.selectedConv = null;
         this.messages = [];
         this.stopPolling();
         this.loadConversations();
+        this.cdr.detectChanges();
       })
     });
   }
@@ -254,8 +302,15 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       next: conv => this.ngZone.run(() => {
         this.creatingConv = false;
         this.showNewConvModal = false;
-        this.loadConversations();
-        setTimeout(() => this.selectConversation(conv), 300);
+
+        const idx = this.conversations.findIndex(c => c.id === conv.id);
+        if (idx === -1) {
+          this.conversations = [conv, ...this.conversations];
+        }
+
+        // Sélectionne et affiche immédiatement
+        this.selectConversation(conv);
+        this.cdr.detectChanges();
       }),
       error: err => this.ngZone.run(() => {
         this.creatingConv = false;
@@ -264,7 +319,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     });
   }
 
-  // ── Computed / helpers ────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   get filteredConversations(): ConversationDTO[] {
     if (!this.searchQuery.trim()) return this.conversations;
@@ -276,7 +331,6 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     );
   }
 
-  /** Label shown in the list for the "other" participant */
   getOtherLabel(conv: ConversationDTO): string {
     return this.currentRole === 'NUTRITIONIST'
       ? `Patient #${conv.patientId}`

@@ -21,15 +21,12 @@ export const routes: Routes = [
   { path: 'inscrire/bloomer', component: InscritBloomer },
   { path: 'abonnement', component: Abonnement },
   { path: 'conversation', component: Conversation },
-
-  // ✅ Dashboard routes — un par rôle
+  { path: 'conversation/:patientId', component: Conversation },
   { path: 'dashboard/nutritionist', component: NutritionistDashboard },
   { path: 'dashboard/coach', component: CoachDashboard },
   { path: 'dashboard/bloomer', component: PatientDashboard },
-
   { path: 'forget-password', component: RequestMail },
   { path: 'verify-code', component: VerifyCode },
   { path: 'reset-password', component: ResetPassword },
-
-  { path: '', redirectTo: 'conversation', pathMatch: 'full' },
+  { path: '', redirectTo: 'Acceuil', pathMatch: 'full' },
 ];
