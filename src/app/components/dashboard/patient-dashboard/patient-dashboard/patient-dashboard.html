@@ -1,286 +1,548 @@
-<!-- ═══ HEADER ═══ -->
-<div class="dashboard-header">
-  <div class="header-left">
-    <h1 class="dashboard-title">Bloomer <span>Dashboard</span></h1>
-    <p class="welcome-text">Bienvenue ! 👋</p>
-  </div>
-  <div class="header-right">
-    <button class="btn-new-rdv" (click)="goToPrendreRdv()">+ Prendre RDV</button>
-    <div class="avatar-icon">👤</div>
-  </div>
-</div>
+<!-- ══════════════════════════════════════════════
+     APP LAYOUT : SIDEBAR + MAIN
+══════════════════════════════════════════════ -->
+<div class="app-layout">
 
-<!-- ═══ STATS ═══ -->
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-icon teal">⚖️</div>
-    <div class="stat-info">
-      <div class="stat-badge teal">{{ derniereConsultation?.poids ?? '—' }}</div>
-      <p class="stat-label">Poids (kg)</p>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon blue">📅</div>
-    <div class="stat-info">
-      <div class="stat-badge blue">{{ rdvConfirmes.length }}</div>
-      <p class="stat-label">RDV Confirmés</p>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon orange">🥗</div>
-    <div class="stat-info">
-      <div class="stat-badge orange">{{ consultations.length }}</div>
-      <p class="stat-label">Consultations</p>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon green">📊</div>
-    <div class="stat-info">
-      <div class="stat-badge green">
-        {{ derniereConsultation ? (derniereConsultation.imc | number : '1.1-1') : '—' }}
-      </div>
-      <p class="stat-label">IMC</p>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ MAIN GRID ═══ -->
-<div class="main-grid">
-  <!-- LEFT : Mes Rendez-Vous -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Mes Rendez-Vous</h2>
-      <a class="view-all">Voir tout</a>
+  <!-- ════ SIDEBAR ════ -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">🌿</span>
+      <span class="logo-text">HealthFlow</span>
     </div>
 
-    <div class="tabs">
-      <button [class.active]="activeTab === 'attente'" (click)="setTab('attente')">
-        En attente ({{ rdvEnAttente.length }})
+    <div class="sidebar-section-label">GÉNÉRAL</div>
+    <div class="sidebar-menu">
+      <button class="nav-item" [class.active]="activeSection === 'dashboard'" (click)="goTo('dashboard')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
       </button>
-      <button [class.active]="activeTab === 'confirme'" (click)="setTab('confirme')">
-        Confirmés ({{ rdvConfirmes.length }})
+      <button class="nav-item" [class.active]="activeSection === 'profile'" (click)="goTo('profile')">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Mon Profil</span>
       </button>
-      <button [class.active]="activeTab === 'refuse'" (click)="setTab('refuse')">
-        Refusés ({{ rdvRefuses.length }})
+      <button class="nav-item" [class.active]="activeSection === 'plan'" (click)="goTo('plan')">
+        <span class="nav-icon">🥗</span>
+        <span class="nav-label">Plan Alimentaire</span>
       </button>
     </div>
 
-    @if (activeTab === 'attente') { @for (rdv of rdvEnAttente; track rdv.id) {
-    <div class="rdv-item">
-      <div class="rdv-time-bubble amber">
-        {{ rdv.dateHeure | date : 'dd' }}
-      </div>
-      <div class="rdv-info">
-        <p class="rdv-name">Consultation nutritionnelle</p>
-        <p class="rdv-type">{{ rdv.motif }}</p>
-        <p class="rdv-hour">🕐 {{ rdv.dateHeure | date : 'HH:mm' }}</p>
-      </div>
-      <span class="badge-status pending">En attente</span>
-      <div class="phone-btn">📞</div>
-    </div>
-    } @if (rdvEnAttente.length === 0) {
-    <p class="empty-state">Aucun rendez-vous en attente</p>
-    } } @if (activeTab === 'confirme') { @for (rdv of rdvConfirmes; track rdv.id) {
-    <div class="rdv-item">
-      <div class="rdv-time-bubble green">
-        {{ rdv.dateHeure | date : 'dd' }}
-      </div>
-      <div class="rdv-info">
-        <p class="rdv-name">Consultation nutritionnelle</p>
-        <p class="rdv-type">{{ rdv.motif }}</p>
-        <p class="rdv-hour">🕐 {{ rdv.dateHeure | date : 'HH:mm' }}</p>
-      </div>
-      <span class="badge-status confirmed">Confirmé ✓</span>
-      <div class="phone-btn pink">📞</div>
-    </div>
-    } @if (rdvConfirmes.length === 0) {
-    <p class="empty-state">Aucun rendez-vous confirmé</p>
-    } } @if (activeTab === 'refuse') { @for (rdv of rdvRefuses; track rdv.id) {
-    <div class="rdv-item">
-      <div class="rdv-time-bubble grey">
-        {{ rdv.dateHeure | date : 'dd' }}
-      </div>
-      <div class="rdv-info">
-        <p class="rdv-name">Consultation nutritionnelle</p>
-        <p class="rdv-type">{{ rdv.motif }}</p>
-        <p class="rdv-hour">🕐 {{ rdv.dateHeure | date : 'HH:mm' }}</p>
-      </div>
-      <span class="badge-status refused">Refusé ✗</span>
-      <div class="phone-btn grey">📞</div>
-    </div>
-    } @if (rdvRefuses.length === 0) {
-    <p class="empty-state">Aucun rendez-vous refusé</p>
-    } }
-  </div>
-
-  <!-- RIGHT : Mon Suivi -->
-  <div class="card">
-    <div class="card-header">
-      <h2>Mon Suivi</h2>
+    <div class="sidebar-section-label">RENDEZ-VOUS</div>
+    <div class="sidebar-menu">
+      <button class="nav-item" [class.active]="activeSection === 'rdv-nutritionniste'" (click)="goTo('rdv-nutritionniste')">
+        <span class="nav-icon">🩺</span>
+        <span class="nav-label">Nutritionniste</span>
+        @if (rdvNutriEnAttente.length > 0) {
+          <span class="nav-badge">{{ rdvNutriEnAttente.length }}</span>
+        }
+      </button>
+      <button class="nav-item" [class.active]="activeSection === 'rdv-coach'" (click)="goTo('rdv-coach')">
+        <span class="nav-icon">🏋️</span>
+        <span class="nav-label">Coach Sportif</span>
+        @if (rdvCoachEnAttente.length > 0) {
+          <span class="nav-badge">{{ rdvCoachEnAttente.length }}</span>
+        }
+      </button>
     </div>
 
-    @if (derniereConsultation) {
-    <div class="suivi-row">
-      <span class="suivi-label">Objectif</span>
-      <span class="suivi-val goal">🎯 {{ derniereConsultation.objectif }}</span>
+    <div class="sidebar-section-label">MESSAGES</div>
+    <div class="sidebar-menu">
+      <button class="nav-item" [class.active]="activeSection === 'messages-nutritionniste'" (click)="goTo('messages-nutritionniste')">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Nutritionniste</span>
+      </button>
+      <button class="nav-item" [class.active]="activeSection === 'messages-coach'" (click)="goTo('messages-coach')">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">Coach Sportif</span>
+      </button>
     </div>
-    <div class="suivi-row">
-      <span class="suivi-label">Diagnostic</span>
-      <span class="suivi-val">{{ derniereConsultation.diagnostic }}</span>
-    </div>
-    <div class="suivi-row">
-      <span class="suivi-label">Recommandations</span>
-      <span class="suivi-val small">{{ derniereConsultation.recommandations }}</span>
-    </div>
-    <div class="suivi-row">
-      <span class="suivi-label">Prochain RDV</span>
-      <span class="suivi-val date">
-        📆
-        {{
-          derniereConsultation.prochainRdv
-            ? (derniereConsultation.prochainRdv | date : 'dd/MM/yyyy')
-            : 'Non défini'
-        }}
-      </span>
-    </div>
-    <div class="imc-gauge">
-      <div class="gauge-header">
-        <span class="gauge-label">IMC</span>
-        <strong class="gauge-val">{{ derniereConsultation.imc | number : '1.1-1' }}</strong>
-        <span class="gauge-tag">{{ getImcLabel() }}</span>
+  </nav>
+
+  <!-- ════ MAIN CONTENT ════ -->
+  <main class="main-content">
+
+    <!-- ═══════════ DASHBOARD ═══════════ -->
+    @if (activeSection === 'dashboard') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Bloomer <span>Dashboard</span></h1>
+          <p class="page-sub">Bienvenue {{ profile.prenom }} 👋</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-primary" (click)="openCalendarFor('nutritionniste')">🩺 RDV Nutritionniste</button>
+          <button class="btn-secondary" (click)="openCalendarFor('coach')">🏋️ RDV Coach</button>
+        </div>
       </div>
-      <div class="gauge-bar">
-        <div class="gauge-fill" [style.width]="getImcPercent()"></div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon teal">⚖️</div>
+          <div class="stat-info">
+            <div class="stat-val">{{ derniereConsultation?.poids ?? '—' }}</div>
+            <p class="stat-label">Poids (kg)</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🩺</div>
+          <div class="stat-info">
+            <div class="stat-val">{{ rdvNutriConfirmes.length }}</div>
+            <p class="stat-label">RDV Nutritionniste</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon orange">🏋️</div>
+          <div class="stat-info">
+            <div class="stat-val">{{ rdvCoachConfirmes.length }}</div>
+            <p class="stat-label">RDV Coach</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">📊</div>
+          <div class="stat-info">
+            <div class="stat-val">{{ derniereConsultation ? (derniereConsultation.imc | number:'1.1-1') : '—' }}</div>
+            <p class="stat-label">IMC</p>
+          </div>
+        </div>
       </div>
-      <div class="gauge-range">
-        <span>16</span><span>18.5</span><span>25</span><span>30</span><span>40</span>
+
+      <!-- Suivi + Tracking -->
+      <div class="main-grid">
+        <div class="card">
+          <div class="card-header"><h2>Mon Suivi</h2></div>
+          @if (derniereConsultation) {
+            <div class="suivi-row"><span class="suivi-label">Objectif</span><span class="suivi-val goal">🎯 {{ derniereConsultation.objectif }}</span></div>
+            <div class="suivi-row"><span class="suivi-label">Diagnostic</span><span class="suivi-val">{{ derniereConsultation.diagnostic }}</span></div>
+            <div class="suivi-row"><span class="suivi-label">Recommandations</span><span class="suivi-val small">{{ derniereConsultation.recommandations }}</span></div>
+            <div class="suivi-row">
+              <span class="suivi-label">Prochain RDV</span>
+              <span class="suivi-val date">📆 {{ derniereConsultation.prochainRdv ? (derniereConsultation.prochainRdv | date:'dd/MM/yyyy') : 'Non défini' }}</span>
+            </div>
+            <div class="imc-gauge">
+              <div class="gauge-header">
+                <span class="gauge-label">IMC</span>
+                <strong class="gauge-val">{{ derniereConsultation.imc | number:'1.1-1' }}</strong>
+                <span class="gauge-tag">{{ getImcLabel() }}</span>
+              </div>
+              <div class="gauge-bar"><div class="gauge-fill" [style.width]="getImcPercent()"></div></div>
+              <div class="gauge-range"><span>16</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
+            </div>
+          } @else {
+            <p class="empty-state">Aucune consultation disponible</p>
+          }
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2>Suivi Quotidien</h2></div>
+          <div class="tracking-list">
+            <div class="tracking-item"><span class="tr-icon">💧</span><div class="tr-info"><p class="tr-label">Hydratation</p><p class="tr-val">1.8 <span>/ 2.5 L</span></p></div><div class="tr-bar-wrap"><div class="tr-bar"><div class="tr-fill water" style="width:72%"></div></div><span class="tr-pct">72%</span></div></div>
+            <div class="tracking-item"><span class="tr-icon">🏃</span><div class="tr-info"><p class="tr-label">Activité</p><p class="tr-val">3 <span>/ 5 séances</span></p></div><div class="tr-bar-wrap"><div class="tr-bar"><div class="tr-fill sport" style="width:60%"></div></div><span class="tr-pct">60%</span></div></div>
+            <div class="tracking-item"><span class="tr-icon">🥗</span><div class="tr-info"><p class="tr-label">Alimentation</p><p class="tr-val">78 <span>%</span></p></div><div class="tr-bar-wrap"><div class="tr-bar"><div class="tr-fill food" style="width:78%"></div></div><span class="tr-pct">78%</span></div></div>
+            <div class="tracking-item"><span class="tr-icon">😴</span><div class="tr-info"><p class="tr-label">Sommeil</p><p class="tr-val">7h <span>/ 8h</span></p></div><div class="tr-bar-wrap"><div class="tr-bar"><div class="tr-fill sleep" style="width:87%"></div></div><span class="tr-pct">87%</span></div></div>
+          </div>
+        </div>
       </div>
-    </div>
-    } @else {
-    <p class="empty-state">Aucune consultation disponible</p>
+
+      <!-- Historique consultations -->
+      <div class="card full-width">
+        <div class="card-header">
+          <h2>Historique des Consultations</h2>
+          <span class="count-badge">{{ consultations.length }}</span>
+        </div>
+        @for (c of consultations; track c.id) {
+          <div class="consultation-row" (click)="openConsultation(c.id)">
+            <div class="patient-avatar">B</div>
+            <div class="consultation-info">
+              <span class="cinfo-id">Consultation #{{ c.id }}</span>
+              <span class="cinfo-date">{{ c.dateConsultation | date:'dd/MM/yyyy' }}</span>
+              <span class="cinfo-obj">{{ c.objectif }}</span>
+            </div>
+            <span class="imc-pill">IMC : {{ c.imc | number:'1.1-1' }}</span>
+            <span class="row-arrow">›</span>
+          </div>
+        }
+        @if (consultations.length === 0) {
+          <p class="empty-state">Aucune consultation dans l'historique</p>
+        }
+      </div>
     }
-  </div>
-</div>
 
-<!-- ═══ SUIVI QUOTIDIEN ═══ -->
-<div class="tracking-grid">
-  <div class="tracking-card">
-    <div class="tracking-icon">💧</div>
-    <h3>Hydratation</h3>
-    <div class="tracking-value">1.8 <span>/ 2.5 L</span></div>
-    <div class="tracking-bar">
-      <div class="tracking-fill water" style="width: 72%"></div>
-    </div>
-    <p class="tracking-sub">72% de l'objectif quotidien</p>
-  </div>
-  <div class="tracking-card">
-    <div class="tracking-icon">🏃</div>
-    <h3>Activité Sportive</h3>
-    <div class="tracking-value">3 <span>/ 5 séances</span></div>
-    <div class="tracking-bar">
-      <div class="tracking-fill sport" style="width: 60%"></div>
-    </div>
-    <p class="tracking-sub">3 séances cette semaine</p>
-  </div>
-  <div class="tracking-card">
-    <div class="tracking-icon">🥗</div>
-    <h3>Alimentation</h3>
-    <div class="tracking-value">78 <span>% healthy</span></div>
-    <div class="tracking-bar">
-      <div class="tracking-fill food" style="width: 78%"></div>
-    </div>
-    <p class="tracking-sub">Repas enregistrés aujourd'hui</p>
-  </div>
-  <div class="tracking-card">
-    <div class="tracking-icon">😴</div>
-    <h3>Sommeil</h3>
-    <div class="tracking-value">7h <span>/ 8h</span></div>
-    <div class="tracking-bar">
-      <div class="tracking-fill sleep" style="width: 87%"></div>
-    </div>
-    <p class="tracking-sub">Bonne récupération</p>
-  </div>
-</div>
+    <!-- ═══════════ RDV NUTRITIONNISTE ═══════════ -->
+    @if (activeSection === 'rdv-nutritionniste') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">🩺 Rendez-Vous <span>Nutritionniste</span></h1>
+          <p class="page-sub">Gérez vos consultations avec votre nutritionniste</p>
+        </div>
+        <button class="btn-primary" (click)="openCalendarFor('nutritionniste')">+ Nouveau RDV</button>
+      </div>
 
-<!-- ═══ HISTORIQUE CONSULTATIONS ═══ -->
-<div class="card full-width">
-  <div class="card-header">
-    <h2>Historique des Consultations</h2>
-    <span class="count-badge">{{ consultations.length }}</span>
-  </div>
+      <div class="rdv-tabs-card">
+        <div class="rdv-tabs-header">
+          <div class="tabs">
+            <button [class.active]="activeTabNutri === 'attente'" (click)="activeTabNutri = 'attente'">
+              En attente <span class="tab-pill amber">{{ rdvNutriEnAttente.length }}</span>
+            </button>
+            <button [class.active]="activeTabNutri === 'confirme'" (click)="activeTabNutri = 'confirme'">
+              Confirmés <span class="tab-pill green">{{ rdvNutriConfirmes.length }}</span>
+            </button>
+            <button [class.active]="activeTabNutri === 'refuse'" (click)="activeTabNutri = 'refuse'">
+              Refusés <span class="tab-pill red">{{ rdvNutriRefuses.length }}</span>
+            </button>
+          </div>
+        </div>
 
-  @for (c of consultations; track c.id) {
-  <div class="consultation-row" (click)="openConsultation(c.id)">
-    <div class="patient-avatar">B</div>
-    <div class="consultation-info">
-      <span class="patient-id">Consultation #{{ c.id }}</span>
-      <span class="consultation-date">{{ c.dateConsultation | date : 'dd/MM/yyyy' }}</span>
-      <span class="objectif-tag">{{ c.objectif }}</span>
-    </div>
-    <span class="imc-pill">IMC : {{ c.imc | number : '1.1-1' }}</span>
-    <span class="arrow">›</span>
-  </div>
-  } @if (consultations.length === 0) {
-  <p class="empty-state">Aucune consultation dans l'historique</p>
-  }
-</div>
-
-<!-- ═══ ACTIONS RAPIDES ═══ -->
-<div class="quick-actions-grid">
-  <div class="action-card" (click)="goToPrendreRdv()">
-    <div class="action-icon">📅</div>
-    <h3>Prendre RDV</h3>
-    <p>Réserver avec votre nutritionniste</p>
-  </div>
-  <div class="action-card">
-    <div class="action-icon">🥗</div>
-    <h3>Mon Plan Alimentaire</h3>
-    <p>Consulter votre régime personnalisé</p>
-  </div>
-  <div class="action-card" (click)="goToMessages()">
-    <div class="action-icon">💬</div>
-    <h3>Messages</h3>
-    <p>Contacter mon nutritionniste</p>
-  </div>
-</div>
-
-<!-- ═══ MODAL CONSULTATION ═══ -->
-@if (showModal && selectedConsultation) {
-<div class="modal-overlay" (click)="closeModal()">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <button class="modal-close" (click)="closeModal()">✕</button>
-    <h3>Détails Consultation</h3>
-    <div class="modal-row">
-      <span>Poids</span><strong>{{ selectedConsultation.poids }} kg</strong>
-    </div>
-    <div class="modal-row">
-      <span>Taille</span><strong>{{ selectedConsultation.taille }} m</strong>
-    </div>
-    <div class="modal-row">
-      <span>IMC</span><strong>{{ selectedConsultation.imc | number : '1.1-1' }}</strong>
-    </div>
-    <div class="modal-row">
-      <span>Objectif</span><strong>{{ selectedConsultation.objectif }}</strong>
-    </div>
-    <div class="modal-row">
-      <span>Diagnostic</span><strong>{{ selectedConsultation.diagnostic }}</strong>
-    </div>
-    <div class="modal-row">
-      <span>Recommandations</span><strong>{{ selectedConsultation.recommandations }}</strong>
-    </div>
-    <div class="modal-row">
-      <span>Notes</span><strong>{{ selectedConsultation.notes }}</strong>
-    </div>
-    <div class="modal-row">
-      <span>Date</span
-      ><strong>{{ selectedConsultation.dateConsultation | date : 'dd/MM/yyyy HH:mm' }}</strong>
-    </div>
-    @if (selectedConsultation.prochainRdv) {
-    <div class="modal-row">
-      <span>Prochain RDV</span>
-      <strong>{{ selectedConsultation.prochainRdv | date : 'dd/MM/yyyy' }}</strong>
-    </div>
+        <div class="rdv-list">
+          @if (activeTabNutri === 'attente') {
+            @for (rdv of rdvNutriEnAttente; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block amber">
+                  <span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span>
+                  <span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span>
+                </div>
+                <div class="rdv-row-info">
+                  <p class="rdv-row-title">{{ rdv.motif }}</p>
+                  <p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p>
+                </div>
+                <span class="badge-status pending">En attente</span>
+              </div>
+            }
+            @if (rdvNutriEnAttente.length === 0) { <p class="empty-state">Aucun rendez-vous en attente</p> }
+          }
+          @if (activeTabNutri === 'confirme') {
+            @for (rdv of rdvNutriConfirmes; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block green">
+                  <span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span>
+                  <span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span>
+                </div>
+                <div class="rdv-row-info">
+                  <p class="rdv-row-title">{{ rdv.motif }}</p>
+                  <p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p>
+                </div>
+                <span class="badge-status confirmed">Confirmé ✓</span>
+              </div>
+            }
+            @if (rdvNutriConfirmes.length === 0) { <p class="empty-state">Aucun rendez-vous confirmé</p> }
+          }
+          @if (activeTabNutri === 'refuse') {
+            @for (rdv of rdvNutriRefuses; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block grey">
+                  <span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span>
+                  <span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span>
+                </div>
+                <div class="rdv-row-info">
+                  <p class="rdv-row-title">{{ rdv.motif }}</p>
+                  <p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p>
+                </div>
+                <span class="badge-status refused">Refusé ✗</span>
+              </div>
+            }
+            @if (rdvNutriRefuses.length === 0) { <p class="empty-state">Aucun rendez-vous refusé</p> }
+          }
+        </div>
+      </div>
     }
-  </div>
+
+    <!-- ═══════════ RDV COACH ═══════════ -->
+    @if (activeSection === 'rdv-coach') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">🏋️ Rendez-Vous <span>Coach Sportif</span></h1>
+          <p class="page-sub">Réservez vos séances avec votre coach</p>
+        </div>
+        <button class="btn-primary" (click)="openCalendarFor('coach')">+ Nouveau RDV</button>
+      </div>
+
+      <div class="rdv-tabs-card">
+        <div class="rdv-tabs-header">
+          <div class="tabs">
+            <button [class.active]="activeTabCoach === 'attente'" (click)="activeTabCoach = 'attente'">
+              En attente <span class="tab-pill amber">{{ rdvCoachEnAttente.length }}</span>
+            </button>
+            <button [class.active]="activeTabCoach === 'confirme'" (click)="activeTabCoach = 'confirme'">
+              Confirmés <span class="tab-pill green">{{ rdvCoachConfirmes.length }}</span>
+            </button>
+            <button [class.active]="activeTabCoach === 'refuse'" (click)="activeTabCoach = 'refuse'">
+              Refusés <span class="tab-pill red">{{ rdvCoachRefuses.length }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="rdv-list">
+          @if (activeTabCoach === 'attente') {
+            @for (rdv of rdvCoachEnAttente; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block amber"><span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span><span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span></div>
+                <div class="rdv-row-info"><p class="rdv-row-title">{{ rdv.motif }}</p><p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p></div>
+                <span class="badge-status pending">En attente</span>
+              </div>
+            }
+            @if (rdvCoachEnAttente.length === 0) { <p class="empty-state">Aucun rendez-vous en attente</p> }
+          }
+          @if (activeTabCoach === 'confirme') {
+            @for (rdv of rdvCoachConfirmes; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block green"><span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span><span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span></div>
+                <div class="rdv-row-info"><p class="rdv-row-title">{{ rdv.motif }}</p><p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p></div>
+                <span class="badge-status confirmed">Confirmé ✓</span>
+              </div>
+            }
+            @if (rdvCoachConfirmes.length === 0) { <p class="empty-state">Aucun rendez-vous confirmé</p> }
+          }
+          @if (activeTabCoach === 'refuse') {
+            @for (rdv of rdvCoachRefuses; track rdv.id) {
+              <div class="rdv-row">
+                <div class="rdv-date-block grey"><span class="rdv-day">{{ rdv.dateHeure | date:'dd' }}</span><span class="rdv-mon">{{ rdv.dateHeure | date:'MMM' }}</span></div>
+                <div class="rdv-row-info"><p class="rdv-row-title">{{ rdv.motif }}</p><p class="rdv-row-sub">🕐 {{ rdv.dateHeure | date:'HH:mm' }} · {{ rdv.dureeMinutes }} min</p></div>
+                <span class="badge-status refused">Refusé ✗</span>
+              </div>
+            }
+            @if (rdvCoachRefuses.length === 0) { <p class="empty-state">Aucun rendez-vous refusé</p> }
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ═══════════ PLAN ALIMENTAIRE ═══════════ -->
+    @if (activeSection === 'plan') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">🥗 Mon Plan <span>Alimentaire</span></h1>
+          <p class="page-sub">Régime prescrit par votre nutritionniste</p>
+        </div>
+      </div>
+
+      @if (planLoading) {
+        <div class="plan-loading"><span class="loading-spinner"></span><p>Chargement…</p></div>
+      }
+
+      @if (!planLoading && !planAlimentaire) {
+        <div class="plan-empty">
+          <span class="plan-empty-icon">🥗</span>
+          <h3>Aucun plan disponible</h3>
+          <p>Votre nutritionniste n'a pas encore défini votre plan. Il sera disponible après votre première consultation.</p>
+          <button class="btn-primary" (click)="openCalendarFor('nutritionniste')">Prendre un RDV</button>
+        </div>
+      }
+
+      @if (!planLoading && planAlimentaire) {
+        <div class="plan-meta-card">
+          <div class="plan-meta-item"><span class="plan-meta-label">Titre</span><span class="plan-meta-val">{{ planAlimentaire.titre }}</span></div>
+          <div class="plan-meta-item"><span class="plan-meta-label">Objectif</span><span class="plan-meta-val goal">🎯 {{ planAlimentaire.objectif }}</span></div>
+          <div class="plan-meta-item"><span class="plan-meta-label">Total calories</span><span class="plan-meta-val calories">🔥 {{ getTotalCalories() }} kcal/jour</span></div>
+        </div>
+        <div class="repas-grid">
+          @for (repas of planAlimentaire.repas; track repas.id) {
+            <div class="repas-card">
+              <div class="repas-header">
+                <span class="repas-icon">{{ getRepasIcon(repas.type) }}</span>
+                <div><h3 class="repas-type">{{ getRepasLabel(repas.type) }}</h3><span class="repas-cal">{{ repas.calories }} kcal</span></div>
+              </div>
+              <ul class="repas-list">
+                @for (a of repas.aliments; track a) { <li>{{ a }}</li> }
+              </ul>
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- ═══════════ MESSAGES NUTRITIONNISTE ═══════════ -->
+    @if (activeSection === 'messages-nutritionniste') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">💬 Messages <span>Nutritionniste</span></h1>
+          <p class="page-sub">Conversation avec Dr. Sarah Benali</p>
+        </div>
+      </div>
+      <!-- Le composant conversation existant reçoit les IDs via @Input -->
+      <div class="conversation-wrapper">
+        <app-conversation></app-conversation>
+      </div>
+    }
+
+    <!-- ═══════════ MESSAGES COACH ═══════════ -->
+    @if (activeSection === 'messages-coach') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">💬 Messages <span>Coach Sportif</span></h1>
+          <p class="page-sub">Conversation avec votre coach sportif</p>
+        </div>
+      </div>
+      <div class="conversation-wrapper">
+        <app-conversation></app-conversation>
+      </div>
+    }
+
+    <!-- ═══════════ PROFIL ═══════════ -->
+    @if (activeSection === 'profile') {
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">👤 Mon <span>Profil</span></h1>
+          <p class="page-sub">Vos informations personnelles</p>
+        </div>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-avatar-big">{{ profile.prenom[0] }}{{ profile.nom[0] }}</div>
+        <div class="profile-info">
+          <h2 class="profile-name">{{ profile.prenom }} {{ profile.nom }}</h2>
+          <p class="profile-role">Patient · Bloomer</p>
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="profile-field">
+          <span class="pf-label">Email</span>
+          <span class="pf-val">{{ profile.email }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="pf-label">Téléphone</span>
+          <span class="pf-val">{{ profile.phone }}</span>
+        </div>
+        <div class="profile-field">
+          <span class="pf-label">Âge</span>
+          <span class="pf-val">{{ profile.age }} ans</span>
+        </div>
+        <div class="profile-field">
+          <span class="pf-label">Ville</span>
+          <span class="pf-val">{{ profile.ville }}</span>
+        </div>
+        @if (derniereConsultation) {
+          <div class="profile-field">
+            <span class="pf-label">Poids actuel</span>
+            <span class="pf-val">{{ derniereConsultation.poids }} kg</span>
+          </div>
+          <div class="profile-field">
+            <span class="pf-label">IMC</span>
+            <span class="pf-val">{{ derniereConsultation.imc | number:'1.1-1' }} · {{ getImcLabel() }}</span>
+          </div>
+        }
+      </div>
+    }
+
+  </main>
 </div>
+
+<!-- ═══════════ MODAL CONSULTATION ═══════════ -->
+@if (showConsultationModal && selectedConsultation) {
+  <div class="modal-overlay" (click)="closeConsultationModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <button class="modal-close" (click)="closeConsultationModal()">✕</button>
+      <h3>Détails Consultation</h3>
+      <div class="modal-row"><span>Poids</span><strong>{{ selectedConsultation.poids }} kg</strong></div>
+      <div class="modal-row"><span>Taille</span><strong>{{ selectedConsultation.taille }} m</strong></div>
+      <div class="modal-row"><span>IMC</span><strong>{{ selectedConsultation.imc | number:'1.1-1' }}</strong></div>
+      <div class="modal-row"><span>Objectif</span><strong>{{ selectedConsultation.objectif }}</strong></div>
+      <div class="modal-row"><span>Diagnostic</span><strong>{{ selectedConsultation.diagnostic }}</strong></div>
+      <div class="modal-row"><span>Recommandations</span><strong>{{ selectedConsultation.recommandations }}</strong></div>
+      <div class="modal-row"><span>Notes</span><strong>{{ selectedConsultation.notes }}</strong></div>
+      <div class="modal-row"><span>Date</span><strong>{{ selectedConsultation.dateConsultation | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+      @if (selectedConsultation.prochainRdv) {
+        <div class="modal-row"><span>Prochain RDV</span><strong>{{ selectedConsultation.prochainRdv | date:'dd/MM/yyyy' }}</strong></div>
+      }
+    </div>
+  </div>
+}
+
+<!-- ═══════════ MODAL CALENDRIER ═══════════ -->
+@if (showCalendar) {
+  <div class="modal-overlay" (click)="closeCalendar()">
+    <div class="calendar-modal" (click)="$event.stopPropagation()">
+      <button class="modal-close" (click)="closeCalendar()">✕</button>
+
+      @if (!confirmationDone) {
+        <div class="cal-header">
+          <span class="cal-icon">{{ calendarTarget === 'nutritionniste' ? '🩺' : '🏋️' }}</span>
+          <div>
+            <h3>RDV {{ calendarTarget === 'nutritionniste' ? 'Nutritionniste' : 'Coach Sportif' }}</h3>
+            <p class="cal-subtitle">Choisissez une date et un créneau disponible</p>
+          </div>
+        </div>
+
+        <div class="motif-wrap">
+          <label class="motif-label">Motif</label>
+          <input class="motif-input" [(ngModel)]="rdvMotif" placeholder="Ex : Bilan mensuel, séance coaching…" />
+        </div>
+
+        <div class="cal-body">
+          <div class="cal-left">
+            <div class="cal-nav">
+              <button class="cal-nav-btn" (click)="prevMonth()">‹</button>
+              <span class="cal-month-label">{{ MONTH_NAMES[calendarMonth] }} {{ calendarYear }}</span>
+              <button class="cal-nav-btn" (click)="nextMonth()">›</button>
+            </div>
+            <div class="cal-grid">
+              @for (d of DAY_NAMES; track d) { <div class="cal-day-name">{{ d }}</div> }
+              @for (day of calendarDays; track $index) {
+                <div class="cal-day"
+                  [class.empty]="!day" [class.today]="isToday(day)"
+                  [class.past]="isPastDay(day)" [class.weekend]="isWeekend(day)"
+                  [class.selected]="isSelectedDay(day)"
+                  (click)="selectDay(day)">{{ day ?? '' }}</div>
+              }
+            </div>
+            <div class="cal-legend">
+              <span class="leg-item"><span class="leg-dot today-dot"></span>Aujourd'hui</span>
+              <span class="leg-item"><span class="leg-dot sel-dot"></span>Sélectionné</span>
+              <span class="leg-item"><span class="leg-dot dis-dot"></span>Indisponible</span>
+            </div>
+          </div>
+
+          <div class="cal-right">
+            @if (selectedDate) {
+              <div class="slots-header">
+                <p class="slots-date">{{ fmtSelectedDate() }}</p>
+                <p class="slots-hint">Sélectionnez un créneau</p>
+              </div>
+              <div class="slots-grid">
+                @for (slot of timeSlots; track slot) {
+                  <button class="slot-btn"
+                    [class.taken]="isSlotTaken(slot)"
+                    [class.chosen]="selectedSlot === slot"
+                    [disabled]="isSlotTaken(slot)"
+                    (click)="selectSlot(slot)">{{ slot }}</button>
+                }
+              </div>
+            } @else {
+              <div class="slots-empty">
+                <span>👆</span>
+                <p>Cliquez sur une date pour voir les créneaux disponibles</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="cal-footer">
+          @if (selectedDate && selectedSlot) {
+            <div class="recap-line">
+              <span>📅 {{ fmtSelectedDate() }}</span>
+              <span class="recap-dot">·</span>
+              <span>🕐 {{ selectedSlot }}</span>
+              @if (rdvMotif) { <span class="recap-dot">·</span><span>{{ rdvMotif }}</span> }
+            </div>
+          }
+          <div class="cal-footer-btns">
+            <button class="btn-cancel" (click)="closeCalendar()">Annuler</button>
+            <button class="btn-confirm" [disabled]="!selectedDate || !selectedSlot || !rdvMotif.trim()" (click)="confirmRdv()">
+              Confirmer le RDV
+            </button>
+          </div>
+        </div>
+
+      } @else {
+        <div class="confirmation-screen">
+          <div class="confirm-icon">✅</div>
+          <h3>Demande envoyée !</h3>
+          <p class="confirm-msg">Votre demande pour le <strong>{{ fmtSelectedDate() }}</strong> à <strong>{{ selectedSlot }}</strong> a été envoyée.</p>
+          <p class="confirm-hint">Vous recevrez une confirmation dès validation.</p>
+          <div class="confirm-btns">
+            <button class="btn-cancel" (click)="resetCalendar()">Nouveau RDV</button>
+            <button class="btn-confirm" (click)="closeCalendar()">Fermer</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
 }

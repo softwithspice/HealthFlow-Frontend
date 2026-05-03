@@ -20,6 +20,10 @@ export class RendezVousService {
     return this.http.get<RendezVous[]>(`${this.api}/nutritionniste/${id}`);
   }
 
+  getByCoach(id: number): Observable<RendezVous[]> {
+    return this.http.get<RendezVous[]>(`${this.api}/coach/${id}`);
+  }
+
   getByStatut(statut: string): Observable<RendezVous[]> {
     return this.http.get<RendezVous[]>(`${this.api}/statut/${statut}`);
   }

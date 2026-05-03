@@ -13,7 +13,9 @@
         <button class="menu-item" [class.active]="item.active">
           <span class="menu-icon">{{ item.icon }}</span>
           <span class="menu-label">{{ item.label }}</span>
-          @if (item.badgeCount) {
+          @if (item.label === 'Dashboard' && pendingRdvCount > 0) {
+            <span class="menu-badge">{{ pendingRdvCount }}</span>
+          } @else if (item.badgeCount && item.label !== 'Dashboard') {
             <span class="menu-badge">{{ item.badgeCount }}</span>
           }
         </button>
@@ -53,6 +55,93 @@
           <p class="kpi-value">{{ card.value }}</p>
           <p class="kpi-helper">{{ card.helper }}</p>
         </article>
+      }
+    </section>
+
+    <!-- ═══ RDV SECTION ═══ -->
+    <section class="section card">
+      <div class="section-header">
+        <h2>🗓️ Rendez-Vous Bloomers</h2>
+        @if (pendingRdvCount > 0) {
+          <span class="menu-badge">{{ pendingRdvCount }} en attente</span>
+        }
+      </div>
+
+      <div class="rdv-tabs">
+        <button class="rdv-tab-btn" [class.active]="activeRdvTab === 'attente'" (click)="setRdvTab('attente')">
+          En attente <span class="menu-badge">{{ rdvEnAttente.length }}</span>
+        </button>
+        <button class="rdv-tab-btn" [class.active]="activeRdvTab === 'confirme'" (click)="setRdvTab('confirme')">
+          Confirmés <span class="pill active">{{ rdvConfirmes.length }}</span>
+        </button>
+        <button class="rdv-tab-btn" [class.active]="activeRdvTab === 'refuse'" (click)="setRdvTab('refuse')">
+          Refusés <span class="pill subtle">{{ rdvRefuses.length }}</span>
+        </button>
+      </div>
+
+      @if (rdvLoading) {
+        <p class="muted" style="padding:1rem">Chargement…</p>
+      }
+
+      @if (!rdvLoading) {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Date & Heure</th>
+                <th>Motif</th>
+                <th>Durée</th>
+                @if (activeRdvTab === 'attente') { <th>Actions</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @if (activeRdvTab === 'attente') {
+                @for (rdv of rdvEnAttente; track rdv.id) {
+                  <tr>
+                    <td>Patient #{{ rdv.userId }}</td>
+                    <td>{{ rdv.dateHeure | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ rdv.motif }}</td>
+                    <td>{{ rdv.dureeMinutes }} min</td>
+                    <td class="actions-cell">
+                      <button class="ghost-btn" style="color:#16a34a;border-color:#16a34a" (click)="accepterRdv(rdv.id)">✓ Accepter</button>
+                      <button class="ghost-btn danger" (click)="refuserRdv(rdv.id)">✗ Refuser</button>
+                    </td>
+                  </tr>
+                }
+                @if (rdvEnAttente.length === 0) {
+                  <tr><td colspan="5" class="muted" style="text-align:center;padding:1rem">Aucun rendez-vous en attente</td></tr>
+                }
+              }
+              @if (activeRdvTab === 'confirme') {
+                @for (rdv of rdvConfirmes; track rdv.id) {
+                  <tr>
+                    <td>Patient #{{ rdv.userId }}</td>
+                    <td>{{ rdv.dateHeure | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ rdv.motif }}</td>
+                    <td>{{ rdv.dureeMinutes }} min</td>
+                  </tr>
+                }
+                @if (rdvConfirmes.length === 0) {
+                  <tr><td colspan="4" class="muted" style="text-align:center;padding:1rem">Aucun rendez-vous confirmé</td></tr>
+                }
+              }
+              @if (activeRdvTab === 'refuse') {
+                @for (rdv of rdvRefuses; track rdv.id) {
+                  <tr>
+                    <td>Patient #{{ rdv.userId }}</td>
+                    <td>{{ rdv.dateHeure | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td>{{ rdv.motif }}</td>
+                    <td>{{ rdv.dureeMinutes }} min</td>
+                  </tr>
+                }
+                @if (rdvRefuses.length === 0) {
+                  <tr><td colspan="4" class="muted" style="text-align:center;padding:1rem">Aucun rendez-vous refusé</td></tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
       }
     </section>
 

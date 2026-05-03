@@ -544,3 +544,32 @@ th {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── RDV Tabs ─────────────────────────────────────────────────────────────── */
+.rdv-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.75rem;
+}
+
+.rdv-tab-btn {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.45rem 0.85rem;
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+}
+
+.rdv-tab-btn.active {
+  background: #edf4ff;
+  border-color: #bfdbfe;
+  color: var(--text);
+  font-weight: 600;
+}

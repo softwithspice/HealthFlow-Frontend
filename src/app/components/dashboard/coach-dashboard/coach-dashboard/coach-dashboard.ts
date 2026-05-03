@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
@@ -12,6 +13,8 @@ import {
   CoachNotificationDto,
   CoachWorkoutPlanSummaryDto,
 } from '../../../services/coach-dashboard-service';
+import { RendezVousService } from '../../../services/rendez-vous';
+import { RendezVous } from '../../../../interfaces/rendez-vous';
 
 type SubscriptionState = 'Active' | 'Expired';
 
@@ -75,7 +78,7 @@ interface NotificationItem {
 
 @Component({
   selector: 'app-coach-dashboard',
-  imports: [],
+  imports: [CommonModule, DatePipe],
   templateUrl: './coach-dashboard.html',
   styleUrl: './coach-dashboard.css',
 })
@@ -115,9 +118,17 @@ export class CoachDashboard implements OnInit {
   isLoading = false;
   apiError = '';
 
+  // ── RDV ───────────────────────────────────────────────────────────────────
+  rdvEnAttente:  RendezVous[] = [];
+  rdvConfirmes:  RendezVous[] = [];
+  rdvRefuses:    RendezVous[] = [];
+  activeRdvTab: 'attente' | 'confirme' | 'refuse' = 'attente';
+  rdvLoading = false;
+
   constructor(
     private readonly coachDashboardService: CoachDashboardService,
     private readonly route: ActivatedRoute,
+    private readonly rdvService: RendezVousService,
   ) {}
 
   ngOnInit(): void {
@@ -141,6 +152,7 @@ export class CoachDashboard implements OnInit {
     }
 
     this.loadDashboardData(identity);
+    this.loadRdv();
   }
 
   get overviewCards(): OverviewCard[] {
@@ -156,6 +168,44 @@ export class CoachDashboard implements OnInit {
   get totalUnreadMessages(): number {
     return this.conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
   }
+
+  // ── RDV METHODS ──────────────────────────────────────────────────────────
+
+  loadRdv(): void {
+    const coachId = Number(
+      this.route.snapshot.queryParamMap.get('coachId') ??
+      localStorage.getItem('userId') ??
+      '2'
+    );
+    this.rdvLoading = true;
+    this.rdvService.getByCoach(coachId).subscribe({
+      next: (data: RendezVous[]) => {
+        this.rdvEnAttente = data.filter(r => r.statut === 'EN_ATTENTE');
+        this.rdvConfirmes = data.filter(r => r.statut === 'CONFIRME');
+        this.rdvRefuses   = data.filter(r => r.statut === 'REFUSE');
+        this.rdvLoading   = false;
+      },
+      error: () => { this.rdvLoading = false; }
+    });
+  }
+
+  accepterRdv(id: number): void {
+    this.rdvService.accepter(id).subscribe(() => this.loadRdv());
+  }
+
+  refuserRdv(id: number): void {
+    this.rdvService.refuser(id).subscribe(() => this.loadRdv());
+  }
+
+  setRdvTab(tab: 'attente' | 'confirme' | 'refuse'): void {
+    this.activeRdvTab = tab;
+  }
+
+  get pendingRdvCount(): number {
+    return this.rdvEnAttente.length;
+  }
+
+  // ── DASHBOARD DATA ────────────────────────────────────────────────────────
 
   private loadDashboardData(identity: CoachIdentity): void {
     this.isLoading = true;
