@@ -16,6 +16,26 @@
 }
 
 /* ===========================
+   MOTIVATION BANNER
+=========================== */
+.motivation-banner {
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  color: white;
+  text-align: center;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===========================
    HEADER
 =========================== */
 .header {
@@ -95,7 +115,7 @@
 .progress-fill {
   height: 100%;
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.4s ease;
 }
 
 /* ===========================
@@ -123,9 +143,8 @@
   border-bottom: 1px solid #f0eafa;
   font-size: 13px;
 }
-.meal-row:last-child {
-  border-bottom: none;
-}
+.meal-row:last-child { border-bottom: none; }
+
 .meal-header span {
   color: #888;
   font-size: 11px;
@@ -140,8 +159,8 @@
   gap: 6px;
   flex-wrap: wrap;
 }
-.meal-info       { font-size: 13px; color: #555; }
-.meal-info.prot  { color: #7c3aed; }
+.meal-info      { font-size: 13px; color: #555; }
+.meal-info.prot { color: #7c3aed; }
 
 .empty-msg {
   font-size: 13px;
@@ -149,7 +168,7 @@
   padding: 12px 0;
 }
 
-/* Badges type repas */
+/* Badges */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -163,7 +182,7 @@
 .badge-col   { background: #FAEEDA; color: #633806; }
 
 /* ===========================
-   FORMULAIRE AJOUT REPAS
+   FORMULAIRE REPAS
 =========================== */
 .input-row {
   display: grid;
@@ -230,14 +249,14 @@ select:focus {
   border-radius: 10px;
   padding: 10px 14px;
 }
-.nutr-val        { font-size: 20px; font-weight: 700; }
-.nutr-val.cal    { color: #D85A30; }
-.nutr-val.prot   { color: #7c3aed; }
-.nutr-label      { font-size: 11px; color: #888; margin-top: 2px; }
-.nutr-rest       { font-size: 11px; color: #aaa; margin-top: 2px; }
+.nutr-val      { font-size: 20px; font-weight: 700; }
+.nutr-val.cal  { color: #D85A30; }
+.nutr-val.prot { color: #7c3aed; }
+.nutr-label    { font-size: 11px; color: #888; margin-top: 2px; }
+.nutr-rest     { font-size: 11px; color: #aaa; margin-top: 2px; }
 
 /* ===========================
-   HABITUDES DE VIE - SLIDERS
+   SLIDERS HABITUDES
 =========================== */
 .slider-group {
   display: grid;
@@ -277,6 +296,7 @@ select:focus {
   gap: 12px;
   margin-top: 0.5rem;
 }
+
 .action-btn {
   border-radius: 14px;
   padding: 1.2rem 1rem;
@@ -288,24 +308,69 @@ select:focus {
   font-weight: 600;
   transition: opacity 0.15s ease;
 }
-.action-btn:hover  { opacity: 0.85; }
-.action-btn span   { display: block; font-size: 22px; margin-bottom: 6px; }
+.action-btn:hover { opacity: 0.85; }
+.action-btn span  { display: block; font-size: 22px; margin-bottom: 6px; }
 
 .action-btn.water    { background: linear-gradient(135deg, #378ADD, #185FA5); }
 .action-btn.exercice { background: linear-gradient(135deg, #D85A30, #993C1D); }
-.action-btn.sleep    { background: linear-gradient(135deg, #db2777, #7c3aed); }
+
+/* ===========================
+   SLEEP GROUP
+=========================== */
+.sleep-group {
+  background: linear-gradient(135deg, #db2777, #7c3aed);
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.sleep-group label {
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sleep-group-controls {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.sleep-group-controls input {
+  flex: 1;
+  border-radius: 8px;
+  border: none;
+  padding: 6px 10px;
+  font-size: 14px;
+  text-align: center;
+}
+.sleep-group-controls button {
+  background: white;
+  color: #7c3aed;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sleep-group-controls button:hover { opacity: 0.85; }
 
 /* ===========================
    RESPONSIVE
 =========================== */
 @media (max-width: 1024px) {
-  .grid-4      { grid-template-columns: repeat(2, 1fr); }
-  .grid-2      { grid-template-columns: 1fr; }
-  .input-row   { grid-template-columns: 1fr 1fr 1fr; }
+  .grid-4       { grid-template-columns: repeat(2, 1fr); }
+  .grid-2       { grid-template-columns: 1fr; }
+  .input-row    { grid-template-columns: 1fr 1fr 1fr; }
   .slider-group { grid-template-columns: 1fr; }
   .action-grid  { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .grid-4    { grid-template-columns: 1fr 1fr; }
-  .meal-row  { grid-template-columns: 1fr 60px 70px 30px; }
+  .grid-4   { grid-template-columns: 1fr 1fr; }
+  .meal-row { grid-template-columns: 1fr 60px 70px 30px; }
 }

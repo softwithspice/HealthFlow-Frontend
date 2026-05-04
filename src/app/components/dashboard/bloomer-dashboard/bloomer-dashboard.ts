@@ -1,6 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SuiviService } from '../../../services/suivi';
+import { ObjectifService} from '../../../services/objectif-personnel';
+import { ActivatedRoute } from '@angular/router';
 
 interface Meal {
   name: string;
@@ -17,24 +20,23 @@ interface Meal {
   templateUrl: './bloomer-dashboard.html',
   styleUrl: './bloomer-dashboard.css',
 })
+
 export class BloomerDashboard implements OnInit {
-  water: number = 2;
+userId: string = '';
+
+  water: number = 0;
+  sleep: number = 0;
+  exo: number = 0;
+
+ 
   goalWater: number = 8;
-
-  sleep: number = 6.5;
   goalSleep: number = 7;
-
-  exo: number = 2;
   goalExo: number = 4;
-
   goalCal: number = 2000;
   goalProt: number = 150;
 
-  meals: Meal[] = [
-    { name: 'Poulet rôti', type: 'dejeuner', quantite: 300, cal100: 165, prot100: 18.3 },
-    { name: 'Riz complet', type: 'petit-dej', quantite: 150, cal100: 113, prot100: 8.6 }
-  ];
 
+  meals: Meal[] = [];
   newMeal: Partial<Meal> = {
     name: '',
     type: 'petit-dej',
@@ -43,12 +45,57 @@ export class BloomerDashboard implements OnInit {
     prot100: undefined
   };
 
-  ngOnInit() {}
+ 
+  sleepInput: number | null = null;
+
+
+  motivationMsg: string = '';
+
+  constructor(
+    private suiviService: SuiviService,
+    private objectifService: ObjectifService,
+     private route: ActivatedRoute 
+  ) {}
+
+  ngOnInit(): void {
+  
+     this.route.params.subscribe(params => {
+    this.userId = params['userId'];
+    console.log('userId récupéré:', this.userId); // ← AJOUTE pour débugger
+    if (this.userId) {
+      this.loadData();
+    }
+  });
+  }
+
+  loadData(): void {
+    // Charger suivi du jour
+    this.suiviService.getSuiviDuJour(this.userId).subscribe({
+      next: (data) => {
+        this.water = data.nb_coupes_bues ?? 0;
+        this.sleep = data.nb_heures_sommeil ?? 0;
+        this.exo   = data.nb_exercices_faites ?? 0;
+        this.checkMotivation();
+      },
+      error: (err) => console.error('Erreur chargement suivi', err)
+    });
+
+  
+    this.objectifService.getObjectif(this.userId).subscribe({
+      next: (data) => {
+        this.goalWater = data.objectif_coupes_eau        ?? 8;
+        this.goalSleep = data.objectif_heures_sommeil    ?? 7;
+        this.goalExo   = data.objectif_exercices_semaine ?? 4;
+        this.goalCal   = data.objectif_calories          ?? 2000;
+        this.goalProt  = data.objectif_proteines         ?? 150;
+      },
+      error: (err) => console.error('Erreur chargement objectifs', err)
+    });
+  }
 
   getPercent(val: number, goal: number): number {
     if (!goal) return 0;
-    const p = (val / goal) * 100;
-    return p > 100 ? 100 : p;
+    return Math.min(100, Math.round((val / goal) * 100));
   }
 
   calcCal(meal: Meal): number {
@@ -67,52 +114,113 @@ export class BloomerDashboard implements OnInit {
     return this.meals.reduce((sum, meal) => sum + this.calcProt(meal), 0);
   }
 
-  addMeal() {
+  getBadgeClass(type: string): string {
+    const map: { [key: string]: string } = {
+      'petit-dej': 'badge-petit',
+      'dejeuner':  'badge-dej',
+      'diner':     'badge-din',
+      'collation': 'badge-col'
+    };
+    return map[type] || '';
+  }
+
+  getTypeLabel(type: string): string {
+    const map: { [key: string]: string } = {
+      'petit-dej': 'Petit-dej',
+      'dejeuner':  'Déjeuner',
+      'diner':     'Dîner',
+      'collation': 'Collation'
+    };
+    return map[type] || type;
+  }
+
+  checkMotivation(): void {
+    if (this.water >= this.goalWater)
+      this.motivationMsg = '💧 Bravo ! Objectif eau atteint aujourd\'hui !';
+    else if (this.exo >= this.goalExo)
+      this.motivationMsg = '💪 Incroyable ! Objectif exercices atteint cette semaine !';
+    else if (this.sleep >= this.goalSleep)
+      this.motivationMsg = '😴 Parfait ! Tu as bien dormi cette nuit !';
+    else
+      this.motivationMsg = '';
+  }
+
+ 
+  addWater(): void {
+    this.suiviService.incrementEau(this.userId).subscribe({
+      next: (data) => {
+        this.water = data.nb_coupes_bues;
+        this.checkMotivation();
+      },
+      error: (err) => console.error('Erreur eau', err)
+    });
+  }
+
+  addExercice(): void {
+    this.suiviService.incrementExercice(this.userId).subscribe({
+      next: (data) => {
+        this.exo = data.nb_exercices_faites;
+        this.checkMotivation();
+      },
+      error: (err) => console.error('Erreur exercice', err)
+    });
+  }
+
+  logSleep(): void {
+    if (this.sleepInput !== null && this.sleepInput >= 0) {
+      const heures = this.sleepInput;
+      this.sleep = heures;
+      this.sleepInput = null;
+
+      this.suiviService.updateSommeil(this.userId, heures).subscribe({
+        next: (data) => {
+          this.sleep = data.nb_heures_sommeil;
+          this.checkMotivation();
+        },
+        error: (err) => console.error('Erreur sommeil', err)
+      });
+    }
+  }
+
+  addMeal(): void {
     if (this.newMeal.name && this.newMeal.quantite && this.newMeal.cal100 && this.newMeal.prot100) {
       this.meals.push(this.newMeal as Meal);
+
+  
+      this.suiviService.updateCalories(this.userId, this.totalCalories).subscribe();
+      this.suiviService.updateProteines(this.userId, this.totalProteines).subscribe();
+
       this.newMeal = {
-        name: '',
-        type: 'petit-dej',
-        quantite: undefined,
-        cal100: undefined,
-        prot100: undefined
+        name: '', type: 'petit-dej',
+        quantite: undefined, cal100: undefined, prot100: undefined
       };
     }
   }
 
-  removeMeal(index: number) {
+  removeMeal(index: number): void {
     this.meals.splice(index, 1);
+
+    // Recalcul après suppression
+    this.suiviService.updateCalories(this.userId, this.totalCalories).subscribe();
+    this.suiviService.updateProteines(this.userId, this.totalProteines).subscribe();
   }
 
-  getBadgeClass(type: string): string {
-    switch (type) {
-      case 'petit-dej': return 'badge-petit';
-      case 'dejeuner': return 'badge-dej';
-      case 'diner': return 'badge-diner';
-      case 'collation': return 'badge-collation';
-      default: return '';
-    }
+
+  updateGoalWater(): void {
+    this.objectifService.updateEau(this.userId, this.goalWater).subscribe({
+      error: (err) => console.error('Erreur update eau objectif', err)
+    });
   }
 
-  getTypeLabel(type: string): string {
-    switch (type) {
-      case 'petit-dej': return 'Petit-dej';
-      case 'dejeuner': return 'Déjeuner';
-      case 'diner': return 'Dîner';
-      case 'collation': return 'Collation';
-      default: return type;
-    }
+  updateGoalSleep(): void {
+    this.objectifService.updateSommeil(this.userId, this.goalSleep).subscribe({
+      error: (err) => console.error('Erreur update sommeil objectif', err)
+    });
   }
 
-  addWater() {
-    this.water++;
-  }
-
-  addExercice() {
-    this.exo++;
-  }
-
-  logSleep() {
-    this.sleep += 0.5;
+  updateGoalExo(): void {
+    this.objectifService.updateExercices(this.userId, this.goalExo).subscribe({
+      error: (err) => console.error('Erreur update exercices objectif', err)
+    });
   }
 }

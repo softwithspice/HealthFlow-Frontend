@@ -26,7 +26,7 @@ export const routes: Routes = [
   { path: 'dashboard/nutritionist', component: NutritionistDashboard },
   { path: 'dashboard/coach', component: CoachDashboard },
   { path: 'dashboard/bloomer', component: PatientDashboard },
-  { path: 'dashboard/bloomerr', component: BloomerDashboard },
+  { path: 'dashboard/:userId', component: BloomerDashboard },
   { path: 'forget-password', component: RequestMail },
   { path: 'verify-code', component: VerifyCode },
   { path: 'reset-password', component: ResetPassword },

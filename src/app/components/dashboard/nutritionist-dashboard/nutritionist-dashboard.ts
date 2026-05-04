@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-import { RendezVousService } from '../../../services/rendez-vous';
-import { ConsultationService } from '../../../services/consultation';
+
 import { RendezVous } from '../../../interfaces/rendez-vous';
 import { Consultation } from '../../../interfaces/consultation';
+import { RendezVousService } from '../../services/rendez-vous';
+import { ConsultationService } from '../../services/consultation';
 
 export interface RepasForm {
   typeRepas: string;
@@ -166,8 +167,8 @@ export class NutritionistDashboard implements OnInit {
   }
 
   openConversation(userId: number): void {
-  this.router.navigate(['/conversation', userId]);
-}
+    this.router.navigate(['/conversation', userId]);
+  }
   openParametres(consultationId: number): void {
     console.log('Paramètres consultation', consultationId);
   }
