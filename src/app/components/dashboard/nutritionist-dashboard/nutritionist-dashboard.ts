@@ -5,12 +5,16 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs/operators';
-
+import { RendezVousService } from '../../../services/rendez-vous';
+import { ConsultationService } from '../../../services/consultation';
+<<<<<<< HEAD:src/app/components/dashboard/nutritionist-dashboard/nutritionist-dashboard/nutritionist-dashboard.ts
+import { RendezVous } from '../../../../interfaces/rendez-vous';
+import { Consultation } from '../../../../interfaces/consultation';
+import { ConversationComponent } from '../../../conversation/conversation';
+=======
 import { RendezVous } from '../../../interfaces/rendez-vous';
 import { Consultation } from '../../../interfaces/consultation';
-import { ConversationComponent } from '../../conversation/conversation';
-import { ConsultationService } from '../../services/consultation';
-import { RendezVousService } from '../../services/rendez-vous';
+>>>>>>> 3c84e5d6c7bf34b95261a2f8cf51ac964a1cd202:src/app/components/dashboard/nutritionist-dashboard/nutritionist-dashboard.ts
 
 export interface RepasForm {
   typeRepas: string;
@@ -180,7 +184,7 @@ export class NutritionistDashboard implements OnInit {
           this.cdr.detectChanges();
         });
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('❌ Erreur loadRendezVous:', err);
       }
     });
