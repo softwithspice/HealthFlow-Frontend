@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
 
 export interface CoachDashboardOverviewDto {
   totalClients: number;
@@ -14,9 +15,15 @@ export interface CoachDashboardOverviewDto {
 export interface CoachWorkoutPlanSummaryDto {
   id: number;
   nom: string;
+  description?: string;
   dureeSemaines: number;
   seancesParSemaine: number;
   assignedClientsCount: number;
+  exercisesCount: number;
+  actif?: boolean;
+  dateDebut?: string;
+  dateFin?: string;
+  exercices?: CoachExerciseDto[];
 }
 
 export interface CoachDashboardClientDto {
@@ -72,7 +79,10 @@ export interface CoachIdentity {
 export class CoachDashboardService {
   private readonly apiUrl = 'http://localhost:8084/api/coach-dashboard';
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {}
 
   getOverview(identity: CoachIdentity): Observable<CoachDashboardOverviewDto> {
     return this.http.get<CoachDashboardOverviewDto>(`${this.apiUrl}/overview`, {
@@ -101,6 +111,36 @@ export class CoachDashboardService {
     });
   }
 
+  getExercisesByPlan(planId: number): Observable<CoachExerciseDto[]> {
+    return this.http.get<CoachExerciseDto[]>(`http://localhost:8084/api/exercices/plan/${planId}`, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  createExercise(exercise: Omit<CoachExerciseDto, 'id'>): Observable<CoachExerciseDto> {
+    return this.http.post<CoachExerciseDto>('http://localhost:8084/api/exercices', exercise, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  updateExercise(id: number, exercise: Omit<CoachExerciseDto, 'id'>): Observable<CoachExerciseDto> {
+    return this.http.put<CoachExerciseDto>(`http://localhost:8084/api/exercices/${id}`, exercise, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  deleteExercise(id: number): Observable<void> {
+    return this.http.delete<void>(`http://localhost:8084/api/exercices/${id}`, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  getExerciseById(id: number): Observable<CoachExerciseDto> {
+    return this.http.get<CoachExerciseDto>(`http://localhost:8084/api/exercices/${id}`, {
+      headers: this.authHeaders(),
+    });
+  }
+
   getConversations(identity: CoachIdentity): Observable<CoachConversationDto[]> {
     return this.http.get<CoachConversationDto[]>(`${this.apiUrl}/conversations`, {
       params: this.toParams(identity),
@@ -115,9 +155,40 @@ export class CoachDashboardService {
     });
   }
 
+  // Plan CRUD methods
+  createPlan(plan: Omit<CoachWorkoutPlanSummaryDto, 'id' | 'assignedClientsCount'>): Observable<CoachWorkoutPlanSummaryDto> {
+    return this.http.post<CoachWorkoutPlanSummaryDto>('http://localhost:8084/api/plans-exercice', plan, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  updatePlan(id: number, plan: Omit<CoachWorkoutPlanSummaryDto, 'id' | 'assignedClientsCount'>): Observable<CoachWorkoutPlanSummaryDto> {
+    return this.http.put<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercice/${id}`, plan, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  deletePlan(id: number): Observable<void> {
+    return this.http.delete<void>(`http://localhost:8084/api/plans-exercice/${id}`, {
+      headers: this.authHeaders(),
+    });
+  }
+
+  getPlanById(id: number): Observable<CoachWorkoutPlanSummaryDto> {
+    return this.http.get<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercice/${id}`, {
+      headers: this.authHeaders(),
+    });
+  }
+
   getNotifications(identity: CoachIdentity): Observable<CoachNotificationDto[]> {
     return this.http.get<CoachNotificationDto[]>(`${this.apiUrl}/notifications`, {
       params: this.toParams(identity),
+      headers: this.authHeaders(),
+    });
+  }
+
+  assignPlanToClient(dto: { coachId: string; clientId: string; planExerciceId: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/assignments`, dto, {
       headers: this.authHeaders(),
     });
   }
@@ -134,12 +205,18 @@ export class CoachDashboardService {
   }
 
   private authHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
-    if (!token) {
-      return new HttpHeaders();
+    if (isPlatformBrowser(this.platformId)) {
+      const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+      if (!token) {
+        console.log('CoachDashboardService - No token found in storage');
+        return new HttpHeaders();
+      }
+      console.log('CoachDashboardService - Using token:', token.substring(0, 20) + '...');
+      return new HttpHeaders({
+        Authorization: `Bearer ${token}`,
+      });
     }
-    return new HttpHeaders({
-      Authorization: `Bearer ${token}`,
-    });
+    console.log('CoachDashboardService - Not in browser environment, no auth headers');
+    return new HttpHeaders();
   }
 }
