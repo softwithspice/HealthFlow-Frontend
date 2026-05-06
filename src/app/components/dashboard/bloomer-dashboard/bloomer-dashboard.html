@@ -7,8 +7,11 @@
 <div class="header">
   <h1>Mon Dashboard 🌸</h1>
   <p>Bienvenue dans votre espace personnel HealthFlow</p>
-</div>
 
+  <button class="btn-logout" routerLink="/authentification/bloomer">
+    Log Out
+  </button>
+</div>
 
 <div class="grid-4">
 
@@ -50,11 +53,11 @@
 
   <div class="card">
     <span class="stat-icon">🔥</span>
-    <div class="stat-val">{{ totalCalories }}/{{ goalCal }}</div>
+   <div class="stat-val">{{ calSuivi }}/{{ goalCal }}</div>
     <div class="stat-label">Calories</div>
     <div class="progress-bar">
       <div class="progress-fill"
-           [style.width.%]="getPercent(totalCalories, goalCal)"
+          [style.width.%]="getPercent(calSuivi, goalCal)"
            style="background:#D85A30;">
       </div>
     </div>
@@ -109,17 +112,17 @@
 
     <div class="nutrition-summary">
       <div class="nutr-card">
-        <div class="nutr-val cal">{{ totalCalories }} kcal</div>
+        <div class="nutr-val cal">{{ calSuivi }} kcal</div>
         <div class="nutr-label">Calories consommées</div>
         <div class="nutr-rest">
-          Reste: {{ (goalCal - totalCalories) > 0 ? (goalCal - totalCalories) : 0 }} kcal
+          Reste: {{ (goalCal - calSuivi) > 0 ? (goalCal - calSuivi) : 0 }} kcal
         </div>
       </div>
       <div class="nutr-card">
-        <div class="nutr-val prot">{{ totalProteines }}g</div>
+        <div class="nutr-val prot">{{ protSuivi }}g</div>
         <div class="nutr-label">Protéines consommées</div>
         <div class="nutr-rest">
-          Reste: {{ (goalProt - totalProteines) > 0 ? (goalProt - totalProteines) : 0 }}g
+          Reste: {{ (goalProt - protSuivi) > 0 ? (goalProt - protSuivi) : 0 }}g
         </div>
       </div>
     </div>
@@ -153,13 +156,23 @@
         <div class="slider-item">
           <label>💪 Exercices / semaine</label>
           <div class="slider-row">
-            <input type="range" min="1" max="14" step="1"
+            <input type="range" min="1" max="7" step="1"
                    [(ngModel)]="goalExo" (change)="updateGoalExo()" />
             <span class="slider-val pink">{{ goalExo }}</span>
           </div>
         </div>
 
       </div>
+      <div class="slider-item">
+  <label>🔥 Calories / jour</label>
+  <div class="slider-row">
+    <input type="range" min="1000" max="4000" step="50"
+           [(ngModel)]="goalCal" (change)="updateGoalCal()" />
+    <span class="slider-val">{{ goalCal }}</span>
+  </div>
+</div>
+
+
     </div>
 
     <div class="card">
@@ -187,4 +200,8 @@
     </div>
 
   </div>
+</div>
+<div class="footer-cta">
+  <span>💬 Voulez-vous un nutritionniste et/ou coach personnel ?</span>
+  <button routerLink="/abonnement">Découvrir 😊</button>
 </div>

@@ -128,3 +128,7 @@
     .signup-row a:hover {
       color: #ec4899;
     }
+    .error-msg{
+      color: red;
+      text-align: center;
+    }

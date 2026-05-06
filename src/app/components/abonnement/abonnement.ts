@@ -45,29 +45,39 @@ export class Abonnement implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // ✅ Guard SSR
-    if (!isPlatformBrowser(this.platformId)) return;
+  if (!isPlatformBrowser(this.platformId)) return;
 
-    const saved = sessionStorage.getItem('register_data');
-    if (!saved) {
-      this.router.navigate(['/inscrire']);
+  const saved = sessionStorage.getItem('register_data');
+  
+  if (!saved) {
+
+    const userId = localStorage.getItem('userId');
+    const role   = localStorage.getItem('role');
+    
+    if (!userId) {
+      this.router.navigate(['/authentification/bloomer']);
       return;
     }
-    this.registerData = JSON.parse(saved);
-    if (this.registerData?.role) {
-      this.detectedRole = this.registerData.role.toLowerCase();
-    }
+    this.registerData = { existingUser: true, userId, role };
+    this.detectedRole = (role || 'bloomer').toLowerCase();
+    return;
   }
 
-  private redirectByRole(role: string): void {
+  this.registerData = JSON.parse(saved);
+  if (this.registerData?.role) {
+    this.detectedRole = this.registerData.role.toLowerCase();
+  }
+}
+
+ private redirectByRole(role: string, userId?: string): void {
     const r = (role || '').toLowerCase();
     if (r === 'coach') {
       this.router.navigate(['/dashboard/coach']);
     } else if (r === 'nutritionist') {
       this.router.navigate(['/dashboard/nutritionist']);
     } else {
-      this.router.navigate(['/dashboard/bloomerr']);
-    }
+  this.router.navigate(['/dashboard/patient', userId]); // ✅ après paiement
+}
   }
 
   getLoginRoute(): string[] {
@@ -109,50 +119,70 @@ export class Abonnement implements OnInit {
       this.paymentData.dateExpiration.length === 5 &&
       this.paymentData.cvv.length === 3
     );
+  }subscribe(): void {
+  if (!this.isFormValid()) {
+    this.errorMessage = 'Veuillez remplir tous les champs correctement.';
+    return;
   }
 
-  subscribe(): void {
-    if (!this.isFormValid()) {
-      this.errorMessage = 'Veuillez remplir tous les champs correctement.';
-      return;
-    }
+  this.loading = true;
+  this.errorMessage = '';
 
-    this.loading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
+  const token = localStorage.getItem('token');
 
-    // ✅ Un seul appel HTTP — register + paiement ensemble
+  // ✅ CAS 1 — Bloomer déjà connecté → paiement seul
+  if (this.registerData?.existingUser) {
     const payload = {
-      register: { ...this.registerData },
-      payment: {
-        nomCarte:       this.paymentData.nomCarte.trim(),
-        numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
-        dateExpiration: this.paymentData.dateExpiration,
-        cvv:            this.paymentData.cvv,
-        typeAbonnement: this.selectedPlan
-      }
+      nomCarte:       this.paymentData.nomCarte.trim(),
+      numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+      dateExpiration: this.paymentData.dateExpiration,
+      cvv:            this.paymentData.cvv,
+      typeAbonnement: this.selectedPlan
     };
 
-    this.http.post<any>(`${this.apiUrl}/auth/register-with-payment`, payload).subscribe({
+    this.http.post<any>(`${this.apiUrl}/abonnements/payer`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).subscribe({
       next: (res) => {
         this.loading = false;
         this.successMessage = 'Abonnement activé ! Redirection...';
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('role', res.role);
-        if (isPlatformBrowser(this.platformId)) {
-          sessionStorage.removeItem('register_data');
-        }
-        setTimeout(() => this.redirectByRole(res.role), 1500);
+        setTimeout(() => this.router.navigate(['/dashboard/patient', this.registerData.userId]), 1500);
       },
       error: (err) => {
         this.loading = false;
-        if (err.status === 403) {
-          this.errorMessage = 'Accès refusé. Email déjà utilisé ?';
-        } else {
-          this.errorMessage = err.error?.error || err.error?.message || 'Erreur lors de l\'inscription.';
-        }
-        console.error('Error:', err);
+        console.log('Erreur:', err.error);
+        this.errorMessage = err.error?.error || err.error?.message || 'Erreur lors du paiement.';
       }
     });
+    return; // ✅ STOP ici
   }
+
+  // ✅ CAS 2 — Nouvel utilisateur → register + paiement
+  const payload = {
+    register: { ...this.registerData },
+    payment: {
+      nomCarte:       this.paymentData.nomCarte.trim(),
+      numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+      dateExpiration: this.paymentData.dateExpiration,
+      cvv:            this.paymentData.cvv,
+      typeAbonnement: this.selectedPlan
+    }
+  };
+
+  this.http.post<any>(`${this.apiUrl}/auth/register-with-payment`, payload).subscribe({
+    next: (res) => {
+      this.loading = false;
+      this.successMessage = 'Abonnement activé ! Redirection...';
+      localStorage.setItem('token', res.token);
+      localStorage.setItem('role', res.role);
+      sessionStorage.removeItem('register_data');
+      setTimeout(() => this.redirectByRole(res.role, res.userId), 1500);
+    },
+    error: (err) => {
+      this.loading = false;
+      console.log('Erreur:', err.error);
+      this.errorMessage = err.error?.error || err.error?.message || 'Erreur lors de l\'inscription.';
+    }
+  });
+}
 }

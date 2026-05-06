@@ -53,7 +53,9 @@ export class InscritBloomer {
         this.loading = false;
         localStorage.setItem('token', res.token);
         localStorage.setItem('role', res.role);
-        this.router.navigate(['/dashboard/bloomerr']);
+       localStorage.setItem('userId', res.userId); 
+ this.router.navigate(['/dashboard/bloomer', res.userId]);
+  console.log("RESPONSE =", res);
       },
       error: (err) => {
         this.loading = false;

@@ -44,21 +44,22 @@ export class Authentification implements OnInit {
         this.loading = false;
 
         // Vérifier que l'userId a bien été sauvegardé
-        const userId = this.authService.getUserId();
+      const userId = this.authService.getUserId();
         console.log('✅ Login OK — userId =', userId);
 
         switch (this.role) {
           case 'nutritionist': this.router.navigate(['/dashboard/nutritionist']); break;
           case 'coach':        this.router.navigate(['/dashboard/coach']);        break;
-          case 'bloomer':      this.router.navigate(['/dashboard/bloomer']);      break;
+         case 'bloomer':      this.router.navigate(['/dashboard', userId]);       break;
           default:             this.router.navigate(['/Acceuil']);
         }
       },
-      error: (err) => {
-        this.loading  = false;
-        this.errorMsg = 'Email ou mot de passe incorrect.';
-        console.error(err);
-      }
+   error: (err) => {
+  this.loading = false;
+  // ← affiche le vrai message du backend
+  this.errorMsg = err.error?.error || 'Email ou mot de passe incorrect.';
+  console.error(err);
+}
     });
   }
 }

@@ -17,7 +17,9 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
 
 
   const isBrowser = isPlatformBrowser(platformId);
-
+  if (req.url.includes('/api/auth/')) {
+    return next(req);
+  }
 
   const token = isBrowser ? localStorage.getItem('token') : null;
 

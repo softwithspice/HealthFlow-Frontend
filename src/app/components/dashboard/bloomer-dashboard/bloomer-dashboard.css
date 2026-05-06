@@ -374,3 +374,72 @@ select:focus {
   .grid-4   { grid-template-columns: 1fr 1fr; }
   .meal-row { grid-template-columns: 1fr 60px 70px 30px; }
 }
+/* ===========================
+   HEADER EXTRAS
+=========================== */
+.header {
+  position: relative;
+}
+
+.header-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  margin-top: 6px;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  transition: color 0.2s;
+  display: inline-block;
+}
+.header-subtitle:hover {
+  color: white;
+}
+
+.btn-logout {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.2rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  backdrop-filter: blur(4px);
+}
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+
+.footer-cta {
+  margin-top: 2rem;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  border-radius: 16px;
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.footer-cta button {
+  background: white;
+  color: #7c3aed;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.footer-cta button:hover {
+  opacity: 0.85;
+}
