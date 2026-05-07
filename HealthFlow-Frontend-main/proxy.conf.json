@@ -1,0 +1,26 @@
+{
+  "/api": {
+    "target": "http://localhost:8084",
+    "secure": false,
+    "changeOrigin": true,
+    "headers": {
+      "Origin": "http://localhost:8084"
+    }
+  },
+  "/objectifs": {
+    "target": "http://localhost:8084",
+    "secure": false,
+    "changeOrigin": true,
+    "headers": {
+      "Origin": "http://localhost:8084"
+    }
+  },
+  "/suivi": {
+    "target": "http://localhost:8084",
+    "secure": false,
+    "changeOrigin": true,
+    "headers": {
+      "Origin": "http://localhost:8084"
+    }
+  }
+}
