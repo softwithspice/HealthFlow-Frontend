@@ -35,11 +35,34 @@ interface PlanAlimentaireDetail {
   repas: RepasJour[];
 }
 
+interface Exercice {
+  id: number;
+  nom: string;
+  description: string;
+  series?: number | null;
+  repetitions?: number | null;
+  dureeSecondes?: number | null;
+  tempsReposSecondes?: number | null;
+  poidsKg?: number | null;
+  categorie?: string;
+}
+
+interface ProgrammeEntrainement {
+  id: number;
+  nom: string;
+  description?: string;
+  dureeSemaines: number;
+  seancesParSemaine: number;
+  dateDebut?: string;
+  exercices: Exercice[];
+}
+
 export type Section =
   | 'dashboard'
   | 'rdv-nutritionniste'
   | 'rdv-coach'
   | 'plan'
+  | 'programme'
   | 'messages-nutritionniste'
   | 'messages-coach'
   | 'profile';
@@ -57,7 +80,6 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   nutritionnisteId: string | number | null = null;
   coachId: string | number | null = null;
-
 
   activeSection: Section = 'dashboard';
 
@@ -83,8 +105,11 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   planAlimentaire: PlanAlimentaireDetail | null = null;
   planLoading = false;
-
   private readonly planApi = '/api/plans-alimentaires';
+
+  programmeEntrainement: ProgrammeEntrainement | null = null;
+  programmeLoading = false;
+  private readonly programmeApi = '/api/plans-exercices';
 
   // Calendrier
   showCalendar = false;
@@ -163,6 +188,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   loadAll(): void {
     this.loadConsultations();
     this.loadPlan();
+    this.loadProgramme();
     this.loadNutritionnistes();
     this.loadCoaches();
   }
@@ -172,13 +198,13 @@ export class PatientDashboard implements OnInit, OnDestroy {
     if (!id) return;
     this.patientService.getById(id).subscribe({
       next: (data: Patient) => {
-        this.profile.prenom         = data.prenom         ?? '';
-        this.profile.nom            = data.nom            ?? '';
-        this.profile.email          = data.email          ?? '';
-        this.profile.phone          = data.telephone      ?? '';
-        this.profile.dateNaissance  = data.dateNaissance  ?? '';
-        this.profile.sexe           = data.sexe           ?? '';
-        this.profile.adresse        = data.adresse        ?? '';
+        this.profile.prenom = data.prenom ?? '';
+        this.profile.nom = data.nom ?? '';
+        this.profile.email = data.email ?? '';
+        this.profile.phone = data.telephone ?? '';
+        this.profile.dateNaissance = data.dateNaissance ?? '';
+        this.profile.sexe = data.sexe ?? '';
+        this.profile.adresse = data.adresse ?? '';
         this.profile.typeAbonnement = data.typeAbonnement ?? '';
       },
       error: (err) => console.error('❌ Erreur loadProfile:', err)
@@ -190,12 +216,12 @@ export class PatientDashboard implements OnInit, OnDestroy {
     this.rdvService.getAll().subscribe((data: RendezVous[]) => {
       const mine = data.filter(
         r => String(r.userId) === String(this.userId) &&
-             String(r.nutritionnisteId) === idToFilter
+          String(r.nutritionnisteId) === idToFilter
       );
       this.rdvNutriEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvNutriConfirmes = mine.filter(r => r.statut === 'CONFIRME');
-      this.rdvNutriRefuses   = mine.filter(r => r.statut === 'REFUSE');
-      this.takenSlotsNutri   = mine.map(r => ({
+      this.rdvNutriRefuses = mine.filter(r => r.statut === 'REFUSE');
+      this.takenSlotsNutri = mine.map(r => ({
         date: r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
@@ -208,12 +234,12 @@ export class PatientDashboard implements OnInit, OnDestroy {
     this.rdvService.getAll().subscribe((data: RendezVous[]) => {
       const mine = data.filter(
         r => String(r.userId) === String(this.userId) &&
-             String(r.coachId) === idToFilter
+          String(r.coachId) === idToFilter
       );
       this.rdvCoachEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvCoachConfirmes = mine.filter(r => r.statut === 'CONFIRME');
-      this.rdvCoachRefuses   = mine.filter(r => r.statut === 'REFUSE');
-      this.takenSlotsCoach   = mine.map(r => ({
+      this.rdvCoachRefuses = mine.filter(r => r.statut === 'REFUSE');
+      this.takenSlotsCoach = mine.map(r => ({
         date: r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
@@ -301,12 +327,27 @@ export class PatientDashboard implements OnInit, OnDestroy {
       next: (plans) => {
         this.planAlimentaire = plans.length > 0
           ? plans.sort((a, b) =>
-              new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
-            )[0]
+            new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
+          )[0]
           : null;
         this.planLoading = false;
       },
       error: () => { this.planLoading = false; }
+    });
+  }
+
+  loadProgramme(): void {
+    this.programmeLoading = true;
+    this.http.get<ProgrammeEntrainement[]>(`${this.programmeApi}/user/${this.userId}`).subscribe({
+      next: (plans) => {
+        this.programmeEntrainement = plans.length > 0
+          ? plans.sort((a, b) =>
+            new Date(b.dateDebut ?? 0).getTime() - new Date(a.dateDebut ?? 0).getTime()
+          )[0]
+          : null;
+        this.programmeLoading = false;
+      },
+      error: () => { this.programmeLoading = false; }
     });
   }
 
@@ -327,6 +368,12 @@ export class PatientDashboard implements OnInit, OnDestroy {
       COLLATION: 'Collation', DINER: 'Dîner', SNACK: 'Snack'
     };
     return map[type] ?? type;
+  }
+
+  getExerciceCategorie(ex: Exercice): string {
+    if ((ex.dureeSecondes ?? 0) >= 120) return 'Cardio';
+    if ((ex.series ?? 0) >= 3) return 'Force';
+    return 'Général';
   }
 
   goTo(section: Section): void {
@@ -394,7 +441,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
     const d = new Date(this.selectedDate);
     d.setHours(+h, +m, 0, 0);
 
-    const dateHeure = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`;
+    const dateHeure = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
 
     const nutriId = this.nutritionnisteSelectionne?.id ?? this.nutritionnisteId;
 
@@ -456,8 +503,8 @@ export class PatientDashboard implements OnInit, OnDestroy {
   isSelectedDay(day: number | null): boolean {
     if (!day || !this.selectedDate) return false;
     return day === this.selectedDate.getDate() &&
-           this.calendarMonth === this.selectedDate.getMonth() &&
-           this.calendarYear === this.selectedDate.getFullYear();
+      this.calendarMonth === this.selectedDate.getMonth() &&
+      this.calendarYear === this.selectedDate.getFullYear();
   }
 
   isSlotTaken(slot: string): boolean {
@@ -468,7 +515,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   fmtDate(d: Date): string {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   fmtSelectedDate(): string {
@@ -488,8 +535,8 @@ export class PatientDashboard implements OnInit, OnDestroy {
     if (!this.derniereConsultation) return '';
     const v = this.derniereConsultation.imc;
     if (v < 18.5) return 'Insuffisance pondérale';
-    if (v < 25)   return 'Poids normal ✓';
-    if (v < 30)   return 'Surpoids';
+    if (v < 25) return 'Poids normal ✓';
+    if (v < 30) return 'Surpoids';
     return 'Obésité';
   }
 

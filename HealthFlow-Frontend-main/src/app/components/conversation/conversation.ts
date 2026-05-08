@@ -1,9 +1,10 @@
 import {
   Component, OnInit, OnDestroy, NgZone,
   ViewChild, ElementRef, AfterViewChecked,
-  ChangeDetectorRef, Input, OnChanges, SimpleChanges
+  ChangeDetectorRef, Input, OnChanges, SimpleChanges,
+  Inject, PLATFORM_ID
 } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
@@ -41,11 +42,15 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   @ViewChild('messagesEl') private messagesEl!: ElementRef<HTMLDivElement>;
 
-  @Input() initialPatientId: number | null = null;  // ← AJOUT
+  // Inputs from parent dashboard
+  @Input() role: 'PATIENT' | 'NUTRITIONIST' = 'PATIENT';
+  @Input() userId: number | null = null;
+  @Input() targetId: number | null = null; // nutritionistId or coachId
+  @Input() initialPatientId: number | null = null;
 
-  readonly currentRole: 'NUTRITIONIST' | 'PATIENT' = 'NUTRITIONIST';
-  readonly currentUserId = 1;
-  readonly nutritionistId = 1;
+  currentRole: 'NUTRITIONIST' | 'PATIENT' = 'PATIENT';
+  currentUserId = 0;
+  nutritionistId = 0;
 
   private readonly apiUrl = '/api';
 
@@ -60,7 +65,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   showNewConvModal = false;
   newConvPatientId: number | null = null;
-  newConvNutritionistId: number | null = this.nutritionistId;
+  newConvNutritionistId: number | null = null;
   newConvError = '';
   creatingConv = false;
 
@@ -75,28 +80,52 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     private http: HttpClient,
     private ngZone: NgZone,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
   ngOnInit(): void {
+    // Read from localStorage if not passed via @Input
+    if (isPlatformBrowser(this.platformId)) {
+      const storedId = localStorage.getItem('userId');
+      const storedRole = localStorage.getItem('role');
+
+      this.currentUserId = this.userId ?? (storedId ? Number(storedId) : 0);
+      this.currentRole = this.role ?? (storedRole as any) ?? 'PATIENT';
+    } else {
+      this.currentUserId = this.userId ?? 0;
+      this.currentRole = this.role ?? 'PATIENT';
+    }
+
+    this.nutritionistId = this.targetId ?? 0;
+    this.newConvNutritionistId = this.nutritionistId || null;
+
     this.loadConversations();
 
-    // depuis l'URL (ancienne route)
+    // from URL (old route)
     const patientId = this.route.snapshot.paramMap.get('patientId');
     if (patientId) {
       this.autoOpenOrCreateConversation(Number(patientId));
     }
 
-    // depuis le dashboard via @Input
+    // from @Input
     if (this.initialPatientId) {
       this.autoOpenOrCreateConversation(this.initialPatientId);
     }
+
+    // if patient with a known target, auto-open conversation
+    if (this.currentRole === 'PATIENT' && this.nutritionistId) {
+      this.autoOpenConversationForPatient(this.currentUserId, this.nutritionistId);
+    }
   }
 
-  // ← AJOUT : réagit quand initialPatientId change
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['initialPatientId'] && changes['initialPatientId'].currentValue) {
       this.autoOpenOrCreateConversation(changes['initialPatientId'].currentValue);
+    }
+    if (changes['targetId'] && changes['targetId'].currentValue && this.currentRole === 'PATIENT') {
+      this.nutritionistId = changes['targetId'].currentValue;
+      this.autoOpenConversationForPatient(this.currentUserId, this.nutritionistId);
     }
   }
 
@@ -109,6 +138,21 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   ngOnDestroy(): void {
     this.stopPolling();
+  }
+
+  // Auto-open or create conversation between patient and nutritionist
+  autoOpenConversationForPatient(patientId: number, nutriId: number): void {
+    if (!patientId || !nutriId) return;
+    const payload = { patientId, nutritionistId: nutriId };
+    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
+      next: conv => this.ngZone.run(() => {
+        const idx = this.conversations.findIndex(c => c.id === conv.id);
+        if (idx === -1) this.conversations = [conv, ...this.conversations];
+        this.selectConversation(conv);
+        this.cdr.detectChanges();
+      }),
+      error: err => console.error('Erreur auto-open patient', err)
+    });
   }
 
   autoOpenOrCreateConversation(patientId: number): void {
@@ -125,6 +169,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   loadConversations(): void {
+    if (!this.currentUserId) return;
+
     const url = this.currentRole === 'NUTRITIONIST'
       ? `${this.apiUrl}/conversations/nutritionist/${this.currentUserId}`
       : `${this.apiUrl}/conversations/patient/${this.currentUserId}`;
@@ -246,7 +292,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.http.patch(
       `${this.apiUrl}/messages/conversation/${convId}/read?readerRole=${this.currentRole}`,
       {}
-    ).subscribe({ next: () => {}, error: () => {} });
+    ).subscribe({ next: () => { }, error: () => { } });
   }
 
   closeConversation(id: number): void {
@@ -277,8 +323,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   openNewConvModal(): void {
     this.showNewConvModal = true;
     this.newConvError = '';
-    this.newConvPatientId = null;
-    this.newConvNutritionistId = this.nutritionistId;
+    this.newConvPatientId = this.currentRole === 'PATIENT' ? this.currentUserId : null;
+    this.newConvNutritionistId = this.nutritionistId || null;
   }
 
   closeNewConvModal(): void {
