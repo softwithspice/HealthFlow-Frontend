@@ -176,8 +176,6 @@ export class Abonnement implements OnInit {
       });
       return;
     }
-
-    // ✅ CAS 2 — Nouvel utilisateur → register + paiement
     const payload = {
       register: { ...this.registerData },
       payment: {
@@ -193,8 +191,6 @@ export class Abonnement implements OnInit {
       next: (res) => {
         this.loading = false;
         this.successMessage = 'Abonnement activé ! Redirection...';
-
-        // ✅ Sauvegarder toutes les infos du nouvel utilisateur
         localStorage.setItem('token',  res.token);
         localStorage.setItem('role',   res.role);
         localStorage.setItem('userId', res.userId);
