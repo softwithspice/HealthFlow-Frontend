@@ -29,10 +29,10 @@ export class Abonnement implements OnInit {
   };
 
   plans = [
-    { id: 'MOIS_1', label: '1 MONTH',   total: 300,  perMonth: 300 },
-    { id: 'MOIS_3', label: '3 MONTHS',  total: 750,  perMonth: 250 },
-    { id: 'MOIS_6', label: '6 MONTHS',  total: 1320, perMonth: 220 },
-    { id: 'AN_1',   label: '1 YEAR ⭐', total: 2160, perMonth: 180 },
+    { id: 'MOIS_1', label: '1 MONTH', total: 300, perMonth: 300 },
+    { id: 'MOIS_3', label: '3 MONTHS', total: 750, perMonth: 250 },
+    { id: 'MOIS_6', label: '6 MONTHS', total: 1320, perMonth: 220 },
+    { id: 'AN_1', label: '1 YEAR ⭐', total: 2160, perMonth: 180 },
   ];
 
   private registerData: any = null;
@@ -42,7 +42,7 @@ export class Abonnement implements OnInit {
     private http: HttpClient,
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
@@ -51,7 +51,7 @@ export class Abonnement implements OnInit {
 
     if (!saved) {
       const userId = localStorage.getItem('userId');
-      const role   = localStorage.getItem('role');
+      const role = localStorage.getItem('role');
 
       if (!userId) {
         this.router.navigate(['/authentification/bloomer']);
@@ -145,10 +145,10 @@ export class Abonnement implements OnInit {
       }
 
       const payload = {
-        nomCarte:       this.paymentData.nomCarte.trim(),
-        numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+        nomCarte: this.paymentData.nomCarte.trim(),
+        numeroCarte: this.paymentData.numeroCarte.replace(/\s/g, ''),
         dateExpiration: this.paymentData.dateExpiration,
-        cvv:            this.paymentData.cvv,
+        cvv: this.paymentData.cvv,
         typeAbonnement: this.selectedPlan
       };
 
@@ -176,13 +176,15 @@ export class Abonnement implements OnInit {
       });
       return;
     }
+
+    // ✅ CAS 2 — Nouvel utilisateur → register + paiement
     const payload = {
       register: { ...this.registerData },
       payment: {
-        nomCarte:       this.paymentData.nomCarte.trim(),
-        numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+        nomCarte: this.paymentData.nomCarte.trim(),
+        numeroCarte: this.paymentData.numeroCarte.replace(/\s/g, ''),
         dateExpiration: this.paymentData.dateExpiration,
-        cvv:            this.paymentData.cvv,
+        cvv: this.paymentData.cvv,
         typeAbonnement: this.selectedPlan
       }
     };
@@ -191,10 +193,12 @@ export class Abonnement implements OnInit {
       next: (res) => {
         this.loading = false;
         this.successMessage = 'Abonnement activé ! Redirection...';
-        localStorage.setItem('token',  res.token);
-        localStorage.setItem('role',   res.role);
+
+        // ✅ Sauvegarder toutes les infos du nouvel utilisateur
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('role', res.role);
         localStorage.setItem('userId', res.userId);
-        localStorage.setItem('nom',    res.nom);
+        localStorage.setItem('nom', res.nom);
         localStorage.setItem('prenom', res.prenom);
         sessionStorage.removeItem('register_data');
 
