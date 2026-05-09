@@ -12,6 +12,11 @@ export interface Patient {
   telephone?: string;
   adresse?: string;
   typeAbonnement?: string;
+  age?: number;
+  height?: number;
+  weight?: number;
+  goal?: string;
+  lifestyleLevel?: string;
 }
 
 @Injectable({ providedIn: 'root' })

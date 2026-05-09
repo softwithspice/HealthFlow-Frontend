@@ -1,7 +1,7 @@
-import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -12,6 +12,7 @@ import { ConversationComponent } from '../../../conversation/conversation';
 import { RendezVous } from '../../../../interfaces/rendez-vous';
 import { Consultation } from '../../../../interfaces/consultation';
 import { Patient, PatientService } from '../../../services/patient';
+import { PatientInfo } from '../../../../interfaces/PatientInfo';
 
 interface RepasJour {
   id: number;
@@ -77,7 +78,6 @@ export type Section =
 })
 export class PatientDashboard implements OnInit, OnDestroy {
 
-  // ✅ userId lu depuis l'URL ou localStorage — jamais hardcodé
   userId = '';
 
   nutritionnisteId: string | number | null = null;
@@ -138,7 +138,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   ];
   readonly DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
-  profile = {
+  profile: PatientInfo = {
     prenom: '',
     nom: '',
     email: '',
@@ -147,12 +147,18 @@ export class PatientDashboard implements OnInit, OnDestroy {
     height: 0,
     weight: 0,
     goal: '',
+    lifestyleLevel: '',
     ville: '',
     dateNaissance: '',
     sexe: '',
     adresse: '',
     typeAbonnement: ''
   };
+
+  newPassword = '';
+  confirmPassword = '';
+  profileSaveSuccess = false;
+  profileSaveError = false;
 
   nutritionnistes: any[] = [];
   nutritionnisteSelectionne: any = null;
@@ -162,19 +168,24 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   private pollSub: Subscription | null = null;
 
+  private platformId = inject(PLATFORM_ID);
+
   constructor(
     private rdvService: RendezVousService,
     private consultService: ConsultationService,
     private http: HttpClient,
     private patientService: PatientService,
-    private route: ActivatedRoute,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+    private route: ActivatedRoute
+  ) { }
+
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+  }
 
   ngOnInit(): void {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    // ✅ FIX PRINCIPAL : userId depuis URL en priorité, sinon localStorage
     const routeId = this.route.snapshot.paramMap.get('userId');
     if (routeId) {
       this.userId = routeId;
@@ -214,17 +225,81 @@ export class PatientDashboard implements OnInit, OnDestroy {
     if (!this.userId) return;
     this.patientService.getById(this.userId).subscribe({
       next: (data: Patient) => {
-        this.profile.prenom        = data.prenom        ?? '';
-        this.profile.nom           = data.nom           ?? '';
-        this.profile.email         = data.email         ?? '';
-        this.profile.phone         = data.telephone     ?? '';
+        console.log('✅ loadProfile raw data:', data);
+        this.profile.prenom = data.prenom ?? '';
+        this.profile.nom = data.nom ?? '';
+        this.profile.email = data.email ?? '';
+        this.profile.phone = data.telephone ?? '';
         this.profile.dateNaissance = data.dateNaissance ?? '';
-        this.profile.sexe          = data.sexe          ?? '';
-        this.profile.adresse       = data.adresse       ?? '';
+        this.profile.sexe = data.sexe ?? '';
+        this.profile.adresse = data.adresse ?? '';
         this.profile.typeAbonnement = data.typeAbonnement ?? '';
+        this.profile.age = data.age ?? 0;
+        this.profile.height = data.height ?? 0;
+        this.profile.weight = data.weight ?? 0;
+        this.profile.goal = data.goal ?? '';
+        this.profile.lifestyleLevel = data.lifestyleLevel ?? '';
+        console.log('✅ loadProfile mapped profile:', this.profile);
       },
       error: (err) => console.error('❌ Erreur loadProfile:', err)
     });
+  }
+
+  saveProfile(): void {
+    this.profileSaveSuccess = false;
+    this.profileSaveError = false;
+
+    const payload: any = {
+      prenom: this.profile.prenom,
+      nom: this.profile.nom,
+      email: this.profile.email,
+      telephone: this.profile.phone,
+      dateNaissance: this.profile.dateNaissance,
+      sexe: this.profile.sexe,
+      adresse: this.profile.adresse,
+      age: this.profile.age,
+      taille: this.profile.height,
+      poids: this.profile.weight,
+      objectif: this.profile.goal,
+      niveauActivite: this.profile.lifestyleLevel,
+    };
+
+    if (this.newPassword) {
+      payload['password'] = this.newPassword;
+    }
+
+    this.patientService.update(this.userId, payload).subscribe({
+      next: () => {
+        this.profileSaveSuccess = true;
+        this.newPassword = '';
+        setTimeout(() => this.profileSaveSuccess = false, 4000);
+      },
+      error: (err) => {
+        console.error('❌ Erreur saveProfile:', err);
+        this.profileSaveError = true;
+        setTimeout(() => this.profileSaveError = false, 4000);
+      }
+    });
+  }
+
+  getImcValue(): string {
+    if (this.derniereConsultation && this.derniereConsultation.imc) {
+      return this.derniereConsultation.imc.toFixed(1);
+    }
+    if (this.profile.weight && this.profile.height) {
+      const heightInMeters = this.profile.height / 100;
+      const imc = this.profile.weight / (heightInMeters * heightInMeters);
+      return imc.toFixed(1);
+    }
+    return '0.0';
+  }
+
+  changePlan(planId: string): void {
+    // Navigate to abonnement page to process payment for new plan
+    import('@angular/router').then(({ Router }) => { });
+    this.http.get<any>(`/api/patients/${this.userId}`, { headers: this.getHeaders() }).subscribe();
+    // Simple: just update the display locally — real change goes through abonnement page
+    window.location.href = '/abonnement';
   }
 
   loadRdvNutri(nutriId?: number | string): void {
@@ -236,9 +311,9 @@ export class PatientDashboard implements OnInit, OnDestroy {
       );
       this.rdvNutriEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvNutriConfirmes = mine.filter(r => r.statut === 'CONFIRME');
-      this.rdvNutriRefuses   = mine.filter(r => r.statut === 'REFUSE');
-      this.takenSlotsNutri   = mine.map(r => ({
-        date:  r.dateHeure.substring(0, 10),
+      this.rdvNutriRefuses = mine.filter(r => r.statut === 'REFUSE');
+      this.takenSlotsNutri = mine.map(r => ({
+        date: r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
     });
@@ -254,9 +329,9 @@ export class PatientDashboard implements OnInit, OnDestroy {
       );
       this.rdvCoachEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvCoachConfirmes = mine.filter(r => r.statut === 'CONFIRME');
-      this.rdvCoachRefuses   = mine.filter(r => r.statut === 'REFUSE');
-      this.takenSlotsCoach   = mine.map(r => ({
-        date:  r.dateHeure.substring(0, 10),
+      this.rdvCoachRefuses = mine.filter(r => r.statut === 'REFUSE');
+      this.takenSlotsCoach = mine.map(r => ({
+        date: r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
     });
@@ -340,7 +415,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   loadPlan(): void {
     if (!this.userId) return;
     this.planLoading = true;
-    this.http.get<PlanAlimentaireDetail[]>(`${this.planApi}/user/${this.userId}`).subscribe({
+    this.http.get<PlanAlimentaireDetail[]>(`${this.planApi}/user/${this.userId}`, { headers: this.getHeaders() }).subscribe({
       next: (plans) => {
         this.planAlimentaire = plans.length > 0
           ? plans.sort((a, b) =>
@@ -356,7 +431,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   loadProgramme(): void {
     if (!this.userId) return;
     this.programmeLoading = true;
-    this.http.get<ProgrammeEntrainement[]>(`${this.programmeApi}/user/${this.userId}`).subscribe({
+    this.http.get<ProgrammeEntrainement[]>(`${this.programmeApi}/user/${this.userId}`, { headers: this.getHeaders() }).subscribe({
       next: (plans) => {
         this.programmeEntrainement = plans.length > 0
           ? plans.sort((a, b) =>
@@ -371,6 +446,15 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   getTotalCalories(): number {
     return this.planAlimentaire?.repas.reduce((s, r) => s + r.calories, 0) ?? 0;
+  }
+
+  getAlimentsList(aliments: string | string[] | null | undefined): string[] {
+    if (!aliments) return [];
+    if (Array.isArray(aliments)) return aliments;
+    if (typeof aliments === 'string') {
+      return aliments.split(/[,\/;\n]/).map(s => s.trim()).filter(s => s.length > 0);
+    }
+    return [];
   }
 
   getRepasIcon(type: string): string {
@@ -546,24 +630,21 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   getImcPercent(): string {
-    if (!this.derniereConsultation) return '0%';
-    const pct = Math.min(Math.max(((this.derniereConsultation.imc - 16) / 24) * 100, 0), 100);
+    const valStr = this.getImcValue();
+    if (valStr === '—') return '0%';
+    const val = parseFloat(valStr);
+    const pct = Math.min(Math.max(((val - 16) / 24) * 100, 0), 100);
     return `${pct.toFixed(1)}%`;
   }
 
   getImcLabel(): string {
-    if (!this.derniereConsultation) return '';
-    const v = this.derniereConsultation.imc;
+    const valStr = this.getImcValue();
+    if (valStr === '—') return '';
+    const v = parseFloat(valStr);
     if (v < 18.5) return 'Insuffisance pondérale';
-    if (v < 25)   return 'Poids normal ✓';
-    if (v < 30)   return 'Surpoids';
+    if (v < 25) return 'Poids normal ✓';
+    if (v < 30) return 'Surpoids';
     return 'Obésité';
-  }
-
-  getImcFromProfile(): string {
-    if (!this.profile.weight || !this.profile.height) return '—';
-    const h = this.profile.height / 100;
-    return (this.profile.weight / (h * h)).toFixed(1);
   }
 
   get totalRdvNutri(): number {

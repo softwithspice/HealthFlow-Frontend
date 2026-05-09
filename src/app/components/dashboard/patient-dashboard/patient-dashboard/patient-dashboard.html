@@ -80,7 +80,7 @@
       <div class="stat-card">
         <div class="stat-icon teal">⚖️</div>
         <div class="stat-info">
-          <div class="stat-val">{{ derniereConsultation?.poids ?? '—' }}</div>
+          <div class="stat-val">{{ derniereConsultation?.poids ?? profile.weight ?? '—' }}</div>
           <p class="stat-label">Poids (kg)</p>
         </div>
       </div>
@@ -101,7 +101,7 @@
       <div class="stat-card">
         <div class="stat-icon green">📊</div>
         <div class="stat-info">
-          <div class="stat-val">{{ derniereConsultation ? (derniereConsultation.imc | number:'1.1-1') : '—' }}</div>
+          <div class="stat-val">{{ getImcValue() }}</div>
           <p class="stat-label">IMC</p>
         </div>
       </div>
@@ -460,15 +460,40 @@
             <p class="repas-cal">{{ repas.calories }} kcal</p>
           </div>
         </div>
-        <ul class="repas-list">
-          @if (repas.aliments && $any(repas.aliments).length > 0) {
-          @for (aliment of $any(repas.aliments); track $index) {
-          <li>{{ aliment }}</li>
+        
+        <div class="repas-macros">
+          <div class="macro-item">
+            <span class="macro-label">Protéines</span>
+            <span class="macro-val">{{ repas.proteines || 0 }}g</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-label">Glucides</span>
+            <span class="macro-val">{{ repas.glucides || 0 }}g</span>
+          </div>
+          <div class="macro-item">
+            <span class="macro-label">Lipides</span>
+            <span class="macro-val">{{ repas.lipides || 0 }}g</span>
+          </div>
+        </div>
+
+        <div class="repas-body">
+          <p class="section-subtitle">Aliments</p>
+          <ul class="repas-list">
+            @for (aliment of getAlimentsList(repas.aliments); track $index) {
+            <li><span class="check-icon">✓</span> {{ aliment }}</li>
+            }
+            @if (getAlimentsList(repas.aliments).length === 0) {
+            <li class="empty-li">Aucun aliment spécifié</li>
+            }
+          </ul>
+
+          @if (repas.notes) {
+          <div class="repas-notes">
+            <p class="section-subtitle">Notes</p>
+            <p class="notes-text">{{ repas.notes }}</p>
+          </div>
           }
-          } @else {
-          <li style="color:#9ca3af">Aucun aliment renseigné</li>
-          }
-        </ul>
+        </div>
       </div>
       }
     </div>
@@ -519,29 +544,51 @@
           <span class="repas-icon">💪</span>
           <div>
             <p class="repas-type">{{ ex.nom }}</p>
-            <p class="repas-cal">{{ getExerciceCategorie(ex) }}</p>
+            <span class="ex-category">{{ getExerciceCategorie(ex) }}</span>
           </div>
         </div>
-        <ul class="repas-list">
+        
+        <div class="ex-stats">
           @if (ex.series) {
-          <li>{{ ex.series }} séries</li>
+          <div class="ex-stat-item">
+            <span class="ex-stat-label">Séries</span>
+            <span class="ex-stat-val">{{ ex.series }}</span>
+          </div>
           }
           @if (ex.repetitions) {
-          <li>{{ ex.repetitions }} répétitions</li>
-          }
-          @if (ex.dureeSecondes) {
-          <li>{{ ex.dureeSecondes }}s de travail</li>
-          }
-          @if (ex.tempsReposSecondes) {
-          <li>{{ ex.tempsReposSecondes }}s de repos</li>
+          <div class="ex-stat-item">
+            <span class="ex-stat-label">Reps</span>
+            <span class="ex-stat-val">{{ ex.repetitions }}</span>
+          </div>
           }
           @if (ex.poidsKg) {
-          <li>{{ ex.poidsKg }} kg</li>
+          <div class="ex-stat-item">
+            <span class="ex-stat-label">Poids</span>
+            <span class="ex-stat-val">{{ ex.poidsKg }}kg</span>
+          </div>
           }
+          @if (ex.dureeSecondes) {
+          <div class="ex-stat-item">
+            <span class="ex-stat-label">Durée</span>
+            <span class="ex-stat-val">{{ ex.dureeSecondes }}s</span>
+          </div>
+          }
+        </div>
+
+        <div class="repas-body">
+          @if (ex.tempsReposSecondes) {
+          <div class="ex-rest">
+            <span class="rest-icon">⏱️</span> Repos : <strong>{{ ex.tempsReposSecondes }}s</strong>
+          </div>
+          }
+
           @if (ex.description) {
-          <li style="color:#6b7280;font-style:italic">{{ ex.description }}</li>
+          <div class="repas-notes">
+            <p class="section-subtitle">Consignes</p>
+            <p class="notes-text">{{ ex.description }}</p>
+          </div>
           }
-        </ul>
+        </div>
       </div>
       }
       @if (programmeEntrainement.exercices.length === 0) {
@@ -560,29 +607,21 @@
 
     <!-- ✅ MESSAGES NUTRITIONNISTE — fixed with proper @Input bindings -->
     @if (activeSection === 'messages-nutritionniste') {
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">💬 Messages <span>Nutritionniste</span></h1>
-        <p class="page-sub">Conversation avec votre nutritionniste</p>
-      </div>
-    </div>
-    <div class="conversation-wrapper">
-      <app-conversation [role]="'PATIENT'" [userId]="+userId"
-        [targetId]="+(nutritionnisteSelectionne?.id ?? nutritionnisteId ?? 0)">
+    <!-- Rebuild trigger -->
+    <div style="height:100%;display:flex;flex-direction:column;">
+      <app-conversation [role]="'PATIENT'" [userId]="userId"
+        [targetId]="(nutritionnisteSelectionne?.id ?? nutritionnisteId ?? 0)"
+        [targets]="nutritionnistes">
       </app-conversation>
     </div>
     }
 
     <!-- ✅ MESSAGES COACH — fixed with proper @Input bindings -->
     @if (activeSection === 'messages-coach') {
-    <div class="page-header">
-      <div>
-        <h1 class="page-title">💬 Messages <span>Coach Sportif</span></h1>
-        <p class="page-sub">Conversation avec votre coach sportif</p>
-      </div>
-    </div>
-    <div class="conversation-wrapper">
-      <app-conversation [role]="'PATIENT'" [userId]="+userId" [targetId]="+(coachSelectionne?.id ?? coachId ?? 0)">
+    <div style="height:100%;display:flex;flex-direction:column;">
+      <app-conversation [role]="'PATIENT'" [userId]="userId" 
+        [targetId]="(coachSelectionne?.id ?? coachId ?? 0)"
+        [targets]="coaches">
       </app-conversation>
     </div>
     }
@@ -594,8 +633,10 @@
         <h1 class="page-title">👤 Mon <span>Profil</span></h1>
         <p class="page-sub">Vos informations personnelles</p>
       </div>
+      <button class="btn-primary" (click)="saveProfile()">💾 Enregistrer</button>
     </div>
 
+    <!-- Avatar card -->
     <div class="profile-card">
       <div class="profile-avatar-big">
         {{ profile.prenom ? profile.prenom[0] : '?' }}{{ profile.nom ? profile.nom[0] : '' }}
@@ -606,49 +647,150 @@
       </div>
     </div>
 
-    <div class="profile-grid">
-      <div class="profile-field">
-        <span class="pf-label">Prénom</span>
-        <span class="pf-val">{{ profile.prenom || '—' }}</span>
+    <!-- ── INFORMATIONS PERSONNELLES ── -->
+    <div class="profile-section-title">Informations personnelles</div>
+    <div class="profile-edit-grid">
+      <div class="profile-edit-field">
+        <label class="pf-label">Prénom</label>
+        <input class="pf-input" type="text" [(ngModel)]="profile.prenom" placeholder="Prénom" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Nom</span>
-        <span class="pf-val">{{ profile.nom || '—' }}</span>
+      <div class="profile-edit-field">
+        <label class="pf-label">Nom</label>
+        <input class="pf-input" type="text" [(ngModel)]="profile.nom" placeholder="Nom" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Email</span>
-        <span class="pf-val">{{ profile.email || '—' }}</span>
+      <div class="profile-edit-field">
+        <label class="pf-label">Email</label>
+        <input class="pf-input" type="email" [(ngModel)]="profile.email" placeholder="email@exemple.com" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Téléphone</span>
-        <span class="pf-val">{{ profile.phone || '—' }}</span>
+      <div class="profile-edit-field">
+        <label class="pf-label">Téléphone</label>
+        <input class="pf-input" type="tel" [(ngModel)]="profile.phone" placeholder="+216 XX XXX XXX" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Date de naissance</span>
-        <span class="pf-val">{{ profile.dateNaissance ? (profile.dateNaissance | date:'dd/MM/yyyy') : '—' }}</span>
+      <div class="profile-edit-field">
+        <label class="pf-label">Date de naissance</label>
+        <input class="pf-input" type="date" [(ngModel)]="profile.dateNaissance" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Sexe</span>
-        <span class="pf-val">{{ profile.sexe || '—' }}</span>
+      <div class="profile-edit-field">
+        <label class="pf-label">Sexe</label>
+        <select class="pf-input" [(ngModel)]="profile.sexe">
+          <option value="">Sélectionner</option>
+          <option value="Homme">Homme</option>
+          <option value="Femme">Femme</option>
+          <option value="Autre">Autre</option>
+        </select>
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Adresse</span>
-        <span class="pf-val">{{ profile.adresse || '—' }}</span>
+      <div class="profile-edit-field full-width">
+        <label class="pf-label">Adresse</label>
+        <input class="pf-input" type="text" [(ngModel)]="profile.adresse" placeholder="Votre adresse" />
       </div>
-      <div class="profile-field">
-        <span class="pf-label">Abonnement</span>
-        <span class="pf-val">{{ profile.typeAbonnement || 'Standard' }}</span>
+    </div>
+
+    <!-- ── DONNÉES CORPORELLES ── -->
+    <div class="profile-section-title">Données corporelles</div>
+    <div class="profile-edit-grid">
+      <div class="profile-edit-field">
+        <label class="pf-label">Âge</label>
+        <input class="pf-input" type="number" [(ngModel)]="profile.age" placeholder="25" min="0" max="120" />
+      </div>
+      <div class="profile-edit-field">
+        <label class="pf-label">Taille (cm)</label>
+        <input class="pf-input" type="number" [(ngModel)]="profile.height" placeholder="170" min="0" max="300" />
+      </div>
+      <div class="profile-edit-field">
+        <label class="pf-label">Poids (kg)</label>
+        <input class="pf-input" type="number" [(ngModel)]="profile.weight" placeholder="65" min="0" max="500" />
+      </div>
+      <div class="profile-edit-field">
+        <label class="pf-label">Objectif</label>
+        <select class="pf-input" [(ngModel)]="profile.goal">
+          <option value="">Sélectionner votre objectif</option>
+          <option value="Perte de poids">Perte de poids</option>
+          <option value="Prise de masse">Prise de masse</option>
+          <option value="Maintien">Maintien</option>
+          <option value="Bien-être">Bien-être</option>
+          <option value="Performance sportive">Performance sportive</option>
+        </select>
+      </div>
+      <div class="profile-edit-field">
+        <label class="pf-label">Niveau de vie actif</label>
+        <select class="pf-input" [(ngModel)]="profile.lifestyleLevel">
+          <option value="">Sélectionner votre niveau</option>
+          <option value="Sédentaire">Sédentaire</option>
+          <option value="Légèrement actif">Légèrement actif</option>
+          <option value="Modérément actif">Modérément actif</option>
+          <option value="Très actif">Très actif</option>
+          <option value="Extrêmement actif">Extrêmement actif</option>
+        </select>
       </div>
       @if (derniereConsultation) {
-      <div class="profile-field">
-        <span class="pf-label">IMC (dernière consultation)</span>
-        <span class="pf-val" style="color:#0d9488">
-          {{ derniereConsultation.imc | number:'1.1-1' }} — {{ getImcLabel() }}
-        </span>
+      <div class="profile-edit-field">
+        <label class="pf-label">IMC (dernière consultation)</label>
+        <div class="pf-input pf-readonly">{{ derniereConsultation.imc | number:'1.1-1' }} — {{ getImcLabel() }}</div>
       </div>
       }
     </div>
+
+    <!-- ── SÉCURITÉ ── -->
+    <div class="profile-section-title">Sécurité</div>
+    <div class="profile-edit-grid">
+      <div class="profile-edit-field">
+        <label class="pf-label">Mot de passe actuel</label>
+        <div class="pf-input pf-readonly">••••••••</div>
+      </div>
+      <div class="profile-edit-field">
+        <label class="pf-label">Nouveau mot de passe</label>
+        <input class="pf-input" type="password" [(ngModel)]="newPassword" placeholder="Laisser vide pour ne pas changer" />
+      </div>
+    </div>
+
+    <!-- ── ABONNEMENT ── -->
+    <div class="profile-section-title">Abonnement</div>
+    <div class="subscription-plans-grid">
+      <div class="sub-plan-card" [class.current]="(profile.typeAbonnement || 'Standard') === 'Standard'" (click)="changePlan('MOIS_1')">
+        <div class="sub-plan-label">1 MOIS</div>
+        <div class="sub-plan-price">300 <span>DT</span></div>
+        <div class="sub-plan-per">300 DT / mois</div>
+        @if ((profile.typeAbonnement || 'Standard') === 'Standard' || profile.typeAbonnement === 'MOIS_1') {
+        <div class="sub-plan-badge">✓ Actuel</div>
+        }
+      </div>
+      <div class="sub-plan-card" [class.current]="profile.typeAbonnement === 'MOIS_3'" (click)="changePlan('MOIS_3')">
+        <div class="sub-plan-label">3 MOIS</div>
+        <div class="sub-plan-price">750 <span>DT</span></div>
+        <div class="sub-plan-per">250 DT / mois</div>
+        @if (profile.typeAbonnement === 'MOIS_3') {
+        <div class="sub-plan-badge">✓ Actuel</div>
+        }
+      </div>
+      <div class="sub-plan-card" [class.current]="profile.typeAbonnement === 'MOIS_6'" (click)="changePlan('MOIS_6')">
+        <div class="sub-plan-label">6 MOIS</div>
+        <div class="sub-plan-price">1320 <span>DT</span></div>
+        <div class="sub-plan-per">220 DT / mois</div>
+        @if (profile.typeAbonnement === 'MOIS_6') {
+        <div class="sub-plan-badge">✓ Actuel</div>
+        }
+      </div>
+      <div class="sub-plan-card featured" [class.current]="profile.typeAbonnement === 'AN_1'" (click)="changePlan('AN_1')">
+        <div class="sub-plan-label">1 AN ⭐</div>
+        <div class="sub-plan-price">2160 <span>DT</span></div>
+        <div class="sub-plan-per">180 DT / mois</div>
+        @if (profile.typeAbonnement === 'AN_1') {
+        <div class="sub-plan-badge">✓ Actuel</div>
+        }
+      </div>
+    </div>
+
+    <div class="profile-save-bar">
+      @if (profileSaveSuccess) {
+      <span class="save-success">✅ Profil enregistré avec succès !</span>
+      }
+      @if (profileSaveError) {
+      <span class="save-error">❌ Erreur lors de la sauvegarde</span>
+      }
+      <button class="btn-primary" (click)="saveProfile()">💾 Enregistrer les modifications</button>
+    </div>
     }
+
 
   </main>
 

@@ -5,7 +5,7 @@ import {
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -14,7 +14,7 @@ export interface MessageDTO {
   id: number;
   conversationId: number;
   senderId: number;
-  senderRole: 'PATIENT' | 'NUTRITIONIST';
+  senderRole: 'PATIENT' | 'NUTRITIONIST' | 'COACH';
   content: string;
   isRead: boolean;
   sentAt: string;
@@ -43,15 +43,21 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   @Input() initialPatientId: number | null = null;  // ← AJOUT
 @Input() patients: { id: any, nom: string }[] = []; // ← AJOUT
+@Input() targets: any[] = []; // ← AJOUT pour les patients (nutritionnistes/coachs)
 @Input() nutritionistName: string = '';  // ← AJOUTER CETTE LIGNE
 @Input() role: string = '';          // ← fix erreur patient-dashboard
 @Input() userId: any = null;         // ← fix erreur patient-dashboard  
 @Input() targetId: number = 0;       // ← fix erreur patient-dashboard
-  readonly currentRole: 'NUTRITIONIST' | 'PATIENT' = 'NUTRITIONIST';
-  readonly currentUserId = 1;
-  readonly nutritionistId = 1;
+  currentRole: 'NUTRITIONIST' | 'PATIENT' | 'COACH' = 'NUTRITIONIST';
+  currentUserId: any = 1;
+  nutritionistId: any = 1;
 
-  private readonly apiUrl = 'http://localhost:8084/api';
+  private readonly apiUrl = '/api';
+
+  private getHeaders(): HttpHeaders {
+    const token = localStorage.getItem('token') ?? sessionStorage.getItem('token');
+    return token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+  }
 
   conversations: ConversationDTO[] = [];
   selectedConv: ConversationDTO | null = null;
@@ -83,24 +89,42 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   ) { }
 
   ngOnInit(): void {
+    console.log('ConversationComponent OnInit:', { role: this.role, userId: this.userId, targetId: this.targetId });
+    if (this.role) {
+      this.currentRole = this.role.toUpperCase() as any;
+    }
+    if (this.userId) {
+      this.currentUserId = this.userId;
+    }
+    if (this.currentRole !== 'PATIENT') {
+      this.nutritionistId = this.currentUserId;
+    } else if (this.targetId) {
+      this.nutritionistId = this.targetId;
+    }
+
     this.loadConversations();
 
     // depuis l'URL (ancienne route)
     const patientId = this.route.snapshot.paramMap.get('patientId');
-    if (patientId) {
-      this.autoOpenOrCreateConversation(Number(patientId));
+    if (patientId && this.currentRole !== 'PATIENT') {
+      this.autoOpenOrCreateConversation(Number(patientId), this.currentUserId);
     }
 
     // depuis le dashboard via @Input
-    if (this.initialPatientId) {
-      this.autoOpenOrCreateConversation(this.initialPatientId);
+    if (this.initialPatientId && this.currentRole !== 'PATIENT') {
+      this.autoOpenOrCreateConversation(this.initialPatientId, this.currentUserId);
+    } else if (this.targetId && this.currentRole === 'PATIENT') {
+      this.autoOpenOrCreateConversation(this.currentUserId, this.targetId);
     }
   }
 
   // ← AJOUT : réagit quand initialPatientId change
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['initialPatientId'] && changes['initialPatientId'].currentValue) {
-      this.autoOpenOrCreateConversation(changes['initialPatientId'].currentValue);
+    if (changes['initialPatientId'] && changes['initialPatientId'].currentValue && this.currentRole !== 'PATIENT') {
+      this.autoOpenOrCreateConversation(changes['initialPatientId'].currentValue, this.currentUserId);
+    }
+    if (changes['targetId'] && changes['targetId'].currentValue && this.currentRole === 'PATIENT') {
+      this.autoOpenOrCreateConversation(this.currentUserId, changes['targetId'].currentValue);
     }
   }
 
@@ -115,11 +139,12 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.stopPolling();
   }
 
-  autoOpenOrCreateConversation(patientId: number): void {
-  const payload = {
-    patientId: patientId,                    // ← le paramètre, pas newConvPatientId
-    nutritionistId: this.nutritionistId      // ← pas de "type", le backend le calcule
-  };    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
+  autoOpenOrCreateConversation(patientId: any, nutritionistId: any): void {
+    const payload = {
+      patientId: patientId,                    
+      nutritionistId: nutritionistId      
+    };    
+    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload, { headers: this.getHeaders() }).subscribe({
       next: conv => this.ngZone.run(() => {
         const idx = this.conversations.findIndex(c => c.id === conv.id);
         if (idx === -1) this.conversations = [conv, ...this.conversations];
@@ -131,11 +156,11 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   loadConversations(): void {
-    const url = this.currentRole === 'NUTRITIONIST'
-      ? `${this.apiUrl}/conversations/nutritionist/${this.currentUserId}`
-      : `${this.apiUrl}/conversations/patient/${this.currentUserId}`;
+    const url = this.currentRole === 'PATIENT'
+      ? `${this.apiUrl}/conversations/patient/${this.currentUserId}`
+      : `${this.apiUrl}/conversations/nutritionist/${this.currentUserId}`;
 
-    this.http.get<ConversationDTO[]>(url).subscribe({
+    this.http.get<ConversationDTO[]>(url, { headers: this.getHeaders() }).subscribe({
       next: data => this.ngZone.run(() => {
         this.conversations = data.sort(
           (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -160,7 +185,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   loadMessages(convId: number): void {
     this.loadingMessages = true;
-    this.http.get<MessageDTO[]>(`${this.apiUrl}/messages/conversation/${convId}`).subscribe({
+    this.http.get<MessageDTO[]>(`${this.apiUrl}/messages/conversation/${convId}`, { headers: this.getHeaders() }).subscribe({
       next: data => this.ngZone.run(() => {
         this.messages = data;
         this.loadingMessages = false;
@@ -177,7 +202,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   private startPolling(convId: number): void {
     this.stopPolling();
     this.pollSub = interval(5000).pipe(
-      switchMap(() => this.http.get<MessageDTO[]>(`${this.apiUrl}/messages/conversation/${convId}`))
+      switchMap(() => this.http.get<MessageDTO[]>(`${this.apiUrl}/messages/conversation/${convId}`, { headers: this.getHeaders() }))
     ).subscribe({
       next: data => this.ngZone.run(() => {
         const hadNew = data.length > this.messages.length;
@@ -225,7 +250,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       content: content
     };
 
-    this.http.post<MessageDTO>(`${this.apiUrl}/messages`, payload).subscribe({
+    this.http.post<MessageDTO>(`${this.apiUrl}/messages`, payload, { headers: this.getHeaders() }).subscribe({
       next: msg => this.ngZone.run(() => {
         this.messages = this.messages.map(m => m.id === tempMsg.id ? msg : m);
         this.sendingMessage = false;
@@ -251,13 +276,14 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   markAsRead(convId: number): void {
     this.http.patch(
       `${this.apiUrl}/messages/conversation/${convId}/read?readerRole=${this.currentRole}`,
-      {}
+      {},
+      { headers: this.getHeaders() }
     ).subscribe({ next: () => {}, error: () => {} });
   }
 
   closeConversation(id: number): void {
     if (!confirm('Fermer cette conversation ?')) return;
-    this.http.patch<ConversationDTO>(`${this.apiUrl}/conversations/${id}/close`, {}).subscribe({
+    this.http.patch<ConversationDTO>(`${this.apiUrl}/conversations/${id}/close`, {}, { headers: this.getHeaders() }).subscribe({
       next: updated => this.ngZone.run(() => {
         if (this.selectedConv?.id === id) this.selectedConv = updated;
         this.stopPolling();
@@ -269,7 +295,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   deleteConversation(id: number): void {
     if (!confirm('Supprimer cette conversation ?')) return;
-    this.http.delete(`${this.apiUrl}/conversations/${id}`).subscribe({
+    this.http.delete(`${this.apiUrl}/conversations/${id}`, { headers: this.getHeaders() }).subscribe({
       next: () => this.ngZone.run(() => {
         this.selectedConv = null;
         this.messages = [];
@@ -283,8 +309,13 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   openNewConvModal(): void {
     this.showNewConvModal = true;
     this.newConvError = '';
-    this.newConvPatientId = null;
-    this.newConvNutritionistId = this.nutritionistId;
+    if (this.currentRole === 'PATIENT') {
+      this.newConvPatientId = this.currentUserId;
+      this.newConvNutritionistId = null;
+    } else {
+      this.newConvPatientId = null;
+      this.newConvNutritionistId = this.currentUserId;
+    }
   }
 
   closeNewConvModal(): void {
@@ -304,7 +335,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       nutritionistId: this.newConvNutritionistId,
    };
 
-    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
+    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload, { headers: this.getHeaders() }).subscribe({
       next: conv => this.ngZone.run(() => {
         this.creatingConv = false;
         this.showNewConvModal = false;
@@ -317,6 +348,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       }),
       error: err => this.ngZone.run(() => {
         this.creatingConv = false;
+        console.error('❌ Conversation creation failed:', err);
+        console.error('❌ Backend error response:', err.error);
         this.newConvError = err.error?.message || 'Erreur lors de la création.';
       })
     });
@@ -333,12 +366,12 @@ get filteredConversations(): ConversationDTO[] {
 }
 
   getOtherLabel(conv: ConversationDTO): string {
-  if (this.currentRole === 'NUTRITIONIST') {
-    const found = this.patients.find(p => p.id === conv.patientId);
-    return found ? found.nom : `Patient #${conv.patientId}`;
+    if (this.currentRole !== 'PATIENT') {
+      const found = this.patients.find(p => p.id === conv.patientId);
+      return found ? found.nom : `Patient #${conv.patientId}`;
+    }
+    return `Contact #${conv.nutritionistId}`;
   }
-  return `Nutritionniste #${conv.nutritionistId}`;
-}
 
   lastMessage(conv: ConversationDTO): string {
     if (!conv.messages || conv.messages.length === 0) return 'Aucun message';

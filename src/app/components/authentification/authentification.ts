@@ -39,19 +39,21 @@ export class Authentification implements OnInit {
     this.loading  = true;
     this.errorMsg = '';
 
-    this.authService.login({ email: this.email, pwd: this.pwd, role: this.role }).subscribe({
-      next: () => {
+    this.authService.login({ email: this.email, pwd: this.pwd, role: this.role.toUpperCase() }).subscribe({
+      next: (res) => {
         this.loading = false;
+        const userId = this.authService.getUserId();
+        const serverRole = (res.role || this.role).toLowerCase();
+        
+        console.log('✅ Login OK — role =', serverRole, 'userId =', userId);
 
-        // Vérifier que l'userId a bien été sauvegardé
-      const userId = this.authService.getUserId();
-        console.log('✅ Login OK — userId =', userId);
-
-        switch (this.role) {
-          case 'nutritionist': this.router.navigate(['/dashboard/nutritionist']); break;
-          case 'coach':        this.router.navigate(['/dashboard/coach']);        break;
-         case 'bloomer':      this.router.navigate(['/dashboard', userId]);       break;
-          default:             this.router.navigate(['/Acceuil']);
+        if (serverRole === 'nutritionist') {
+          this.router.navigate(['/dashboard/nutritionist']);
+        } else if (serverRole === 'coach') {
+          this.router.navigate(['/dashboard/coach']);
+        } else {
+          // Bloomer or Patient
+          this.router.navigate(['/dashboard/patient', userId]);
         }
       },
    error: (err) => {

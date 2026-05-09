@@ -1540,3 +1540,320 @@
   cursor: pointer;
   font-size: 13px;
 }
+
+/* ── PROFILE EDIT STYLES ── */
+.profile-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #0d9488;
+  margin: 28px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e8f5f0;
+}
+
+.profile-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.profile-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-edit-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.pf-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f8fffe;
+  color: #1e293b;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.pf-input:focus {
+  outline: none;
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, .12);
+  background: #fff;
+}
+
+.pf-input.pf-readonly {
+  background: #f0f7f4;
+  color: #0d9488;
+  font-weight: 600;
+  cursor: default;
+}
+
+/* Subscription plan cards inside profile */
+.subscription-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .subscription-plans-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.sub-plan-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s, transform .15s;
+  background: #fff;
+  position: relative;
+}
+
+.sub-plan-card:hover {
+  border-color: #0d9488;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(13,148,136,.15);
+}
+
+.sub-plan-card.current {
+  border-color: #0d9488;
+  background: #f0fdf9;
+  box-shadow: 0 4px 14px rgba(13,148,136,.2);
+}
+
+.sub-plan-card.featured {
+  border-color: #7c3aed;
+  background: linear-gradient(135deg, #faf5ff, #f0fdf9);
+}
+
+.sub-plan-card.featured.current {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 14px rgba(124,58,237,.2);
+}
+
+.sub-plan-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.sub-plan-price {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0d9488;
+  line-height: 1;
+}
+
+.sub-plan-price span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sub-plan-per {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+.sub-plan-badge {
+  margin-top: 10px;
+  display: inline-block;
+  background: #0d9488;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.sub-plan-card.featured .sub-plan-price { color: #7c3aed; }
+.sub-plan-card.featured .sub-plan-badge { background: #7c3aed; }
+
+/* Save bar */
+.profile-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #e8f5f0;
+}
+
+.save-success {
+  color: #059669;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.save-error {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .profile-edit-grid { grid-template-columns: 1fr; }
+}
+
+/* ── PLAN ALIMENTAIRE DETAILS ── */
+.repas-macros {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px;
+  background: #f0fdfa;
+  border-radius: 10px;
+}
+
+.macro-item {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.macro-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.macro-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0d9488;
+}
+
+.repas-body {
+  margin-top: 16px;
+}
+
+.section-subtitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.repas-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.repas-list li {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.repas-list li:last-child {
+  border-bottom: none;
+}
+
+.check-icon {
+  color: #10b981;
+  font-weight: 800;
+}
+
+.repas-notes {
+  margin-top: 20px;
+  padding: 12px;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+}
+
+.notes-text {
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.empty-li {
+  color: #94a3b8 !important;
+  font-style: italic;
+}
+
+/* ── PROGRAMME ENTRAINEMENT DETAILS ── */
+.ex-category {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.ex-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
+}
+
+.ex-stat-item {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ex-stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.ex-stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ex-rest {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+}
+
+.rest-icon {
+  font-size: 14px;
+}
+
+
