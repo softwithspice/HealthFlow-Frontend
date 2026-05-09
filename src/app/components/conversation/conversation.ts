@@ -42,6 +42,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   @ViewChild('messagesEl') private messagesEl!: ElementRef<HTMLDivElement>;
 
   @Input() initialPatientId: number | null = null;  // ← AJOUT
+@Input() patients: { id: any, nom: string }[] = []; // ← AJOUT
+@Input() nutritionistName: string = '';  // ← AJOUTER CETTE LIGNE
 
   readonly currentRole: 'NUTRITIONIST' | 'PATIENT' = 'NUTRITIONIST';
   readonly currentUserId = 1;
@@ -112,8 +114,10 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   autoOpenOrCreateConversation(patientId: number): void {
-    const payload = { patientId, nutritionistId: this.nutritionistId };
-    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
+  const payload = {
+    patientId: patientId,                    // ← le paramètre, pas newConvPatientId
+    nutritionistId: this.nutritionistId      // ← pas de "type", le backend le calcule
+  };    this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
       next: conv => this.ngZone.run(() => {
         const idx = this.conversations.findIndex(c => c.id === conv.id);
         if (idx === -1) this.conversations = [conv, ...this.conversations];
@@ -295,8 +299,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
     const payload = {
       patientId: this.newConvPatientId,
-      nutritionistId: this.newConvNutritionistId
-    };
+      nutritionistId: this.newConvNutritionistId,
+   };
 
     this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload).subscribe({
       next: conv => this.ngZone.run(() => {
@@ -315,22 +319,24 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       })
     });
   }
-
-  get filteredConversations(): ConversationDTO[] {
-    if (!this.searchQuery.trim()) return this.conversations;
-    const q = this.searchQuery.toLowerCase();
-    return this.conversations.filter(c =>
+get filteredConversations(): ConversationDTO[] {
+  if (!this.searchQuery.trim()) return this.conversations;
+  const q = this.searchQuery.toLowerCase();
+  return this.conversations.filter(c => {
+    const patientLabel = this.getOtherLabel(c).toLowerCase();
+    return patientLabel.includes(q) ||
       String(c.patientId).includes(q) ||
-      String(c.nutritionistId).includes(q) ||
-      c.status.toLowerCase().includes(q)
-    );
-  }
+      c.status.toLowerCase().includes(q);
+  });
+}
 
   getOtherLabel(conv: ConversationDTO): string {
-    return this.currentRole === 'NUTRITIONIST'
-      ? `Patient #${conv.patientId}`
-      : `Nutritionniste #${conv.nutritionistId}`;
+  if (this.currentRole === 'NUTRITIONIST') {
+    const found = this.patients.find(p => p.id === conv.patientId);
+    return found ? found.nom : `Patient #${conv.patientId}`;
   }
+  return `Nutritionniste #${conv.nutritionistId}`;
+}
 
   lastMessage(conv: ConversationDTO): string {
     if (!conv.messages || conv.messages.length === 0) return 'Aucun message';

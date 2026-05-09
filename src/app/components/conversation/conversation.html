@@ -63,7 +63,6 @@
   <section class="conv-thread">
 
     @if (!selectedConv) {
-      <!-- Empty state -->
       <div class="conv-thread-empty">
         <div class="conv-thread-empty-icon">💬</div>
         <h3>Sélectionnez une conversation</h3>
@@ -138,7 +137,8 @@
             class="conv-input"
             placeholder="Écrire un message…"
             [(ngModel)]="newMessage"
-(keydown.enter)="onEnterKey($any($event))"            rows="1"
+            (keydown.enter)="onEnterKey($any($event))"
+            rows="1"
           ></textarea>
           <button
             class="btn-send"
@@ -155,6 +155,9 @@
 
 </div>
 
+<!-- ══════════════════════════════════════════════
+     MODAL NOUVELLE CONVERSATION
+══════════════════════════════════════════════ -->
 @if (showNewConvModal) {
   <div class="modal-overlay" (click)="closeNewConvModal()">
     <div class="modal-box" (click)="$event.stopPropagation()">
@@ -166,18 +169,47 @@
         @if (newConvError) {
           <div class="alert-error">⚠ {{ newConvError }}</div>
         }
+
+        <!-- SELECT PATIENT — liste des patients confirmés -->
         <div class="form-group">
-          <label>ID Patient</label>
-          <input type="number" [(ngModel)]="newConvPatientId" placeholder="Ex: 3">
+          <label>Patient</label>
+          @if (patients && patients.length > 0) {
+            <select [(ngModel)]="newConvPatientId" class="conv-select">
+              <option [ngValue]="null" disabled>— Sélectionner un patient —</option>
+              @for (p of patients; track p.id) {
+                <option [ngValue]="p.id">{{ p.nom }}</option>
+              }
+            </select>
+          } @else {
+            <input
+              type="number"
+              [(ngModel)]="newConvPatientId"
+              placeholder="Ex: 3"
+              class="conv-input-field"
+            >
+            <span class="conv-input-hint">Aucun patient confirmé trouvé</span>
+          }
         </div>
+
+        <!-- ID NUTRITIONNISTE (readonly) -->
         <div class="form-group">
-          <label>ID Nutritionniste</label>
-          <input type="number" [(ngModel)]="newConvNutritionistId" placeholder="Ex: 1">
+          <label>Nutritionniste</label>
+          <input
+            type="text"
+            [value]="'Dr. ' + (nutritionistName || 'Nutritionniste #' + newConvNutritionistId)"
+            readonly
+            class="conv-input-field conv-input-readonly"
+          >
         </div>
+
       </div>
       <div class="modal-box-footer">
         <button class="btn-cancel-sm" (click)="closeNewConvModal()">Annuler</button>
-        <button class="btn-create-conv" [disabled]="creatingConv" (click)="createConversation()">
+        <button
+          class="btn-create-conv"
+          [disabled]="creatingConv || !newConvPatientId"
+          (click)="createConversation()"
+        >
           @if (creatingConv) { Création… } @else { Créer }
         </button>
       </div>
