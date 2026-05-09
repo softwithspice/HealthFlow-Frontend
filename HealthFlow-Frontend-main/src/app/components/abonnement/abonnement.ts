@@ -45,40 +45,39 @@ export class Abonnement implements OnInit {
   ) {}
 
   ngOnInit(): void {
-  if (!isPlatformBrowser(this.platformId)) return;
+    if (!isPlatformBrowser(this.platformId)) return;
 
-  const saved = sessionStorage.getItem('register_data');
-  
-  if (!saved) {
+    const saved = sessionStorage.getItem('register_data');
 
-    const userId = localStorage.getItem('userId');
-    const role   = localStorage.getItem('role');
-    
-    if (!userId) {
-      this.router.navigate(['/authentification/bloomer']);
+    if (!saved) {
+      const userId = localStorage.getItem('userId');
+      const role   = localStorage.getItem('role');
+
+      if (!userId) {
+        this.router.navigate(['/authentification/bloomer']);
+        return;
+      }
+      this.registerData = { existingUser: true, userId, role };
+      this.detectedRole = (role || 'bloomer').toLowerCase();
       return;
     }
-    this.registerData = { existingUser: true, userId, role };
-    this.detectedRole = (role || 'bloomer').toLowerCase();
-    return;
+
+    this.registerData = JSON.parse(saved);
+    if (this.registerData?.role) {
+      this.detectedRole = this.registerData.role.toLowerCase();
+    }
   }
 
-  this.registerData = JSON.parse(saved);
-  if (this.registerData?.role) {
-    this.detectedRole = this.registerData.role.toLowerCase();
-  }
-}
-
- private redirectByRole(role: string, userId?: string): void {
+  // ✅ FIXED : bloomer → /dashboard/patient après paiement
+  private redirectByRole(role: string): void {
     const r = (role || '').toLowerCase();
     if (r === 'coach') {
       this.router.navigate(['/dashboard/coach']);
     } else if (r === 'nutritionist') {
       this.router.navigate(['/dashboard/nutritionist']);
-    } else if (r === 'bloomer') {
-      this.router.navigate(['/dashboard/bloomer']);
     } else {
-      this.router.navigate(['/dashboard/patient']); // ✅ après paiement
+      // bloomer + tout autre role → dashboard patient après paiement
+      this.router.navigate(['/dashboard/patient']);
     }
   }
 
@@ -121,85 +120,95 @@ export class Abonnement implements OnInit {
       this.paymentData.dateExpiration.length === 5 &&
       this.paymentData.cvv.length === 3
     );
-  }subscribe(): void {
-  if (!this.isFormValid()) {
-    this.errorMessage = 'Veuillez remplir tous les champs correctement.';
-    return;
   }
 
-  this.loading = true;
-  this.errorMessage = '';
-
-  const token = localStorage.getItem('token');
-  console.log('🔑 Token au moment du paiement:', token);
-
-  // ✅ CAS 1 — Bloomer déjà connecté → paiement seul
-  if (this.registerData?.existingUser) {
-    if (!token) {
-      this.loading = false;
-      this.errorMessage = 'Session expirée. Veuillez vous reconnecter.';
-      this.router.navigate(['/authentification/bloomer']);
+  subscribe(): void {
+    if (!this.isFormValid()) {
+      this.errorMessage = 'Veuillez remplir tous les champs correctement.';
       return;
     }
+
+    this.loading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const token = localStorage.getItem('token');
+    console.log('🔑 Token au moment du paiement:', token);
+
+    // ✅ CAS 1 — Bloomer déjà connecté → paiement seul
+    if (this.registerData?.existingUser) {
+      if (!token) {
+        this.loading = false;
+        this.errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+        this.router.navigate(['/authentification/bloomer']);
+        return;
+      }
+
+      const payload = {
+        nomCarte:       this.paymentData.nomCarte.trim(),
+        numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+        dateExpiration: this.paymentData.dateExpiration,
+        cvv:            this.paymentData.cvv,
+        typeAbonnement: this.selectedPlan
+      };
+
+      this.http.post<any>(`${this.apiUrl}/abonnements/payer`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).subscribe({
+        next: () => {
+          this.loading = false;
+          this.successMessage = 'Abonnement activé ! Redirection...';
+          setTimeout(() => this.redirectByRole(this.detectedRole), 1500);
+        },
+        error: (err) => {
+          this.loading = false;
+          const msg = err.error?.error || err.error?.message || 'Erreur lors du paiement.';
+          console.log('Erreur:', msg);
+
+          if (msg === 'Vous avez déjà un abonnement actif !') {
+            this.successMessage = 'Vous avez déjà un abonnement actif ! Redirection...';
+            this.errorMessage = '';
+            setTimeout(() => this.redirectByRole(this.detectedRole), 1500);
+          } else {
+            this.errorMessage = msg;
+          }
+        }
+      });
+      return;
+    }
+
+    // ✅ CAS 2 — Nouvel utilisateur → register + paiement
     const payload = {
-      nomCarte:       this.paymentData.nomCarte.trim(),
-      numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
-      dateExpiration: this.paymentData.dateExpiration,
-      cvv:            this.paymentData.cvv,
-      typeAbonnement: this.selectedPlan
+      register: { ...this.registerData },
+      payment: {
+        nomCarte:       this.paymentData.nomCarte.trim(),
+        numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
+        dateExpiration: this.paymentData.dateExpiration,
+        cvv:            this.paymentData.cvv,
+        typeAbonnement: this.selectedPlan
+      }
     };
 
-    this.http.post<any>(`${this.apiUrl}/abonnements/payer`, payload, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).subscribe({
+    this.http.post<any>(`${this.apiUrl}/auth/register-with-payment`, payload).subscribe({
       next: (res) => {
         this.loading = false;
         this.successMessage = 'Abonnement activé ! Redirection...';
-        setTimeout(() => this.redirectByRole(this.detectedRole, this.registerData.userId), 1500);
+
+        // ✅ Sauvegarder toutes les infos du nouvel utilisateur
+        localStorage.setItem('token',  res.token);
+        localStorage.setItem('role',   res.role);
+        localStorage.setItem('userId', res.userId);
+        localStorage.setItem('nom',    res.nom);
+        localStorage.setItem('prenom', res.prenom);
+        sessionStorage.removeItem('register_data');
+
+        setTimeout(() => this.redirectByRole(res.role), 1500);
       },
       error: (err) => {
         this.loading = false;
-        const msg = err.error?.error || err.error?.message || 'Erreur lors du paiement.';
-        console.log('Erreur:', msg);
-        
-        if (msg === 'Vous avez déjà un abonnement actif !') {
-          this.successMessage = 'Vous avez déjà un abonnement actif ! Redirection...';
-          this.errorMessage = '';
-          setTimeout(() => this.redirectByRole(this.detectedRole, this.registerData.userId), 1500);
-        } else {
-          this.errorMessage = msg;
-        }
+        console.log('Erreur:', err.error);
+        this.errorMessage = err.error?.error || err.error?.message || 'Erreur lors de l\'inscription.';
       }
     });
-    return; // ✅ STOP ici
   }
-
-  // ✅ CAS 2 — Nouvel utilisateur → register + paiement
-  const payload = {
-    register: { ...this.registerData },
-    payment: {
-      nomCarte:       this.paymentData.nomCarte.trim(),
-      numeroCarte:    this.paymentData.numeroCarte.replace(/\s/g, ''),
-      dateExpiration: this.paymentData.dateExpiration,
-      cvv:            this.paymentData.cvv,
-      typeAbonnement: this.selectedPlan
-    }
-  };
-
-  this.http.post<any>(`${this.apiUrl}/auth/register-with-payment`, payload).subscribe({
-    next: (res) => {
-      this.loading = false;
-      this.successMessage = 'Abonnement activé ! Redirection...';
-      localStorage.setItem('token', res.token);
-      localStorage.setItem('role', res.role);
-      sessionStorage.removeItem('register_data');
-      setTimeout(() => this.redirectByRole(res.role, res.userId), 1500);
-    },
-    error: (err) => {
-      this.loading = false;
-      console.log('Erreur:', err.error);
-      this.errorMessage = err.error?.error || err.error?.message || 'Erreur lors de l\'inscription.';
-    }
-  });
-}
 }
