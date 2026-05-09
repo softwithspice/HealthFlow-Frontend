@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { RendezVousService } from '../../../services/rendez-vous';
@@ -10,12 +11,19 @@ import { ConversationComponent } from '../../../conversation/conversation';
 
 import { RendezVous } from '../../../../interfaces/rendez-vous';
 import { Consultation } from '../../../../interfaces/consultation';
+import { Patient, PatientService } from '../../../services/patient';
 
 interface RepasJour {
   id: number;
   type: string;
+  typeRepas: string;
+  nom: string;
   calories: number;
-  aliments: string[];
+  aliments: string | string[];
+  proteines?: number;
+  glucides?: number;
+  lipides?: number;
+  notes?: string;
 }
 
 interface PlanAlimentaireDetail {
@@ -28,11 +36,34 @@ interface PlanAlimentaireDetail {
   repas: RepasJour[];
 }
 
+interface Exercice {
+  id: number;
+  nom: string;
+  description: string;
+  series?: number | null;
+  repetitions?: number | null;
+  dureeSecondes?: number | null;
+  tempsReposSecondes?: number | null;
+  poidsKg?: number | null;
+  categorie?: string;
+}
+
+interface ProgrammeEntrainement {
+  id: number;
+  nom: string;
+  description?: string;
+  dureeSemaines: number;
+  seancesParSemaine: number;
+  dateDebut?: string;
+  exercices: Exercice[];
+}
+
 export type Section =
   | 'dashboard'
   | 'rdv-nutritionniste'
   | 'rdv-coach'
   | 'plan'
+  | 'programme'
   | 'messages-nutritionniste'
   | 'messages-coach'
   | 'profile';
@@ -46,9 +77,11 @@ export type Section =
 })
 export class PatientDashboard implements OnInit, OnDestroy {
 
-  userId = 1;
-  nutritionnisteId = 1;
-  coachId = 2;
+  // ✅ userId lu depuis l'URL ou localStorage — jamais hardcodé
+  userId = '';
+
+  nutritionnisteId: string | number | null = null;
+  coachId: string | number | null = null;
 
   activeSection: Section = 'dashboard';
 
@@ -74,8 +107,11 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   planAlimentaire: PlanAlimentaireDetail | null = null;
   planLoading = false;
+  private readonly planApi = '/api/plans-alimentaires';
 
-  private readonly planApi = 'http://localhost:8084/api/plans-alimentaires';
+  programmeEntrainement: ProgrammeEntrainement | null = null;
+  programmeLoading = false;
+  private readonly programmeApi = '/api/plans-exercices';
 
   // Calendrier
   showCalendar = false;
@@ -103,31 +139,63 @@ export class PatientDashboard implements OnInit, OnDestroy {
   readonly DAY_NAMES = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
   profile = {
-    prenom: 'Ahmed',
-    nom: 'Aloui',
-    email: 'ahmed.aloui@email.com',
-    phone: '+216 12 345 678',
-    age: 28,
-    ville: 'Tunis'
+    prenom: '',
+    nom: '',
+    email: '',
+    phone: '',
+    age: 0,
+    height: 0,
+    weight: 0,
+    goal: '',
+    ville: '',
+    dateNaissance: '',
+    sexe: '',
+    adresse: '',
+    typeAbonnement: ''
   };
 
   nutritionnistes: any[] = [];
   nutritionnisteSelectionne: any = null;
+
+  coaches: any[] = [];
+  coachSelectionne: any = null;
 
   private pollSub: Subscription | null = null;
 
   constructor(
     private rdvService: RendezVousService,
     private consultService: ConsultationService,
-    private http: HttpClient
+    private http: HttpClient,
+    private patientService: PatientService,
+    private route: ActivatedRoute,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
   ngOnInit(): void {
+    if (!isPlatformBrowser(this.platformId)) return;
+
+    // ✅ FIX PRINCIPAL : userId depuis URL en priorité, sinon localStorage
+    const routeId = this.route.snapshot.paramMap.get('userId');
+    if (routeId) {
+      this.userId = routeId;
+      localStorage.setItem('userId', routeId);
+    } else {
+      this.userId = localStorage.getItem('userId') ?? '';
+    }
+
+    console.log('✅ PatientDashboard — userId =', this.userId);
+
+    if (!this.userId) {
+      console.error('❌ userId introuvable — redirection login');
+      return;
+    }
+
     const now = new Date();
     this.calendarYear = now.getFullYear();
     this.calendarMonth = now.getMonth();
     this.buildCalendar();
     this.loadAll();
+    this.loadProfile();
   }
 
   ngOnDestroy(): void {
@@ -135,42 +203,60 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
-    this.loadRdvNutri();
-    this.loadRdvCoach();
     this.loadConsultations();
     this.loadPlan();
+    this.loadProgramme();
     this.loadNutritionnistes();
+    this.loadCoaches();
+  }
+
+  loadProfile(): void {
+    if (!this.userId) return;
+    this.patientService.getById(this.userId).subscribe({
+      next: (data: Patient) => {
+        this.profile.prenom        = data.prenom        ?? '';
+        this.profile.nom           = data.nom           ?? '';
+        this.profile.email         = data.email         ?? '';
+        this.profile.phone         = data.telephone     ?? '';
+        this.profile.dateNaissance = data.dateNaissance ?? '';
+        this.profile.sexe          = data.sexe          ?? '';
+        this.profile.adresse       = data.adresse       ?? '';
+        this.profile.typeAbonnement = data.typeAbonnement ?? '';
+      },
+      error: (err) => console.error('❌ Erreur loadProfile:', err)
+    });
   }
 
   loadRdvNutri(nutriId?: number | string): void {
     const idToFilter = String(nutriId ?? this.nutritionnisteId);
-
     this.rdvService.getAll().subscribe((data: RendezVous[]) => {
       const mine = data.filter(
         r => String(r.userId) === String(this.userId) &&
-             String(r.nutritionnisteId) === idToFilter
+          String(r.nutritionnisteId) === idToFilter
       );
       this.rdvNutriEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvNutriConfirmes = mine.filter(r => r.statut === 'CONFIRME');
       this.rdvNutriRefuses   = mine.filter(r => r.statut === 'REFUSE');
       this.takenSlotsNutri   = mine.map(r => ({
-        date: r.dateHeure.substring(0, 10),
+        date:  r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
     });
   }
 
-  loadRdvCoach(): void {
+  loadRdvCoach(coachId?: number | string): void {
+    const idToFilter = String(coachId ?? this.coachId);
+    if (!idToFilter || idToFilter === 'null') return;
     this.rdvService.getAll().subscribe((data: RendezVous[]) => {
       const mine = data.filter(
         r => String(r.userId) === String(this.userId) &&
-             String(r.coachId) === String(this.coachId)
+          String(r.coachId) === idToFilter
       );
       this.rdvCoachEnAttente = mine.filter(r => r.statut === 'EN_ATTENTE');
       this.rdvCoachConfirmes = mine.filter(r => r.statut === 'CONFIRME');
       this.rdvCoachRefuses   = mine.filter(r => r.statut === 'REFUSE');
       this.takenSlotsCoach   = mine.map(r => ({
-        date: r.dateHeure.substring(0, 10),
+        date:  r.dateHeure.substring(0, 10),
         heure: r.dateHeure.substring(11, 16)
       }));
     });
@@ -179,7 +265,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
   loadConsultations(): void {
     this.consultService.getAll().subscribe((data: Consultation[]) => {
       this.consultations = data
-        .filter(c => c.userId === this.userId)
+        .filter(c => String(c.userId) === String(this.userId))
         .sort((a, b) =>
           new Date(b.dateConsultation).getTime() - new Date(a.dateConsultation).getTime()
         );
@@ -206,24 +292,80 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   selectNutritionniste(nutri: any): void {
-  this.nutritionnisteSelectionne = nutri;
-  this.nutritionnisteId = nutri.id;
-  this.loadRdvNutri(nutri.userId);
-  // ✅ Ne pas ouvrir le calendrier ici — le bouton le fait
-}
+    this.nutritionnisteSelectionne = nutri;
+    this.nutritionnisteId = nutri.id;
+    this.loadRdvNutri(nutri.userId ?? nutri.id);
+  }
+
+  selectEtOuvrirCalendrier(nutri: any): void {
+    this.nutritionnisteSelectionne = nutri;
+    this.nutritionnisteId = nutri.id;
+    this.loadRdvNutri(nutri.userId ?? nutri.id);
+    this.calendarTarget = 'nutritionniste';
+    this.showCalendar = true;
+    this.selectedDate = null;
+    this.selectedSlot = null;
+    this.confirmationDone = false;
+    this.confirmationError = false;
+    this.rdvMotif = '';
+    this.buildCalendar();
+  }
+
+  loadCoaches(): void {
+    this.rdvService.getAllCoaches().subscribe((data: any[]) => {
+      this.coaches = data;
+    });
+  }
+
+  selectCoach(coach: any): void {
+    this.coachSelectionne = coach;
+    this.coachId = coach.id;
+    this.loadRdvCoach(coach.userId ?? coach.id);
+  }
+
+  selectEtOuvrirCalendrierCoach(coach: any): void {
+    this.coachSelectionne = coach;
+    this.coachId = coach.id;
+    this.loadRdvCoach(coach.userId ?? coach.id);
+    this.calendarTarget = 'coach';
+    this.showCalendar = true;
+    this.selectedDate = null;
+    this.selectedSlot = null;
+    this.confirmationDone = false;
+    this.confirmationError = false;
+    this.rdvMotif = '';
+    this.buildCalendar();
+  }
 
   loadPlan(): void {
+    if (!this.userId) return;
     this.planLoading = true;
     this.http.get<PlanAlimentaireDetail[]>(`${this.planApi}/user/${this.userId}`).subscribe({
       next: (plans) => {
         this.planAlimentaire = plans.length > 0
           ? plans.sort((a, b) =>
-              new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
-            )[0]
+            new Date(b.dateCreation).getTime() - new Date(a.dateCreation).getTime()
+          )[0]
           : null;
         this.planLoading = false;
       },
       error: () => { this.planLoading = false; }
+    });
+  }
+
+  loadProgramme(): void {
+    if (!this.userId) return;
+    this.programmeLoading = true;
+    this.http.get<ProgrammeEntrainement[]>(`${this.programmeApi}/user/${this.userId}`).subscribe({
+      next: (plans) => {
+        this.programmeEntrainement = plans.length > 0
+          ? plans.sort((a, b) =>
+            new Date(b.dateDebut ?? 0).getTime() - new Date(a.dateDebut ?? 0).getTime()
+          )[0]
+          : null;
+        this.programmeLoading = false;
+      },
+      error: () => { this.programmeLoading = false; }
     });
   }
 
@@ -233,7 +375,7 @@ export class PatientDashboard implements OnInit, OnDestroy {
 
   getRepasIcon(type: string): string {
     const map: Record<string, string> = {
-      PETIT_DEJEUNER: '🌅', DEJEUNER: '☀️', COLLATION: '🍎', DINER: '🌙'
+      PETIT_DEJEUNER: '🌅', DEJEUNER: '☀️', COLLATION: '🍎', DINER: '🌙', SNACK: '🍪'
     };
     return map[type] ?? '🍽️';
   }
@@ -241,22 +383,30 @@ export class PatientDashboard implements OnInit, OnDestroy {
   getRepasLabel(type: string): string {
     const map: Record<string, string> = {
       PETIT_DEJEUNER: 'Petit-déjeuner', DEJEUNER: 'Déjeuner',
-      COLLATION: 'Collation', DINER: 'Dîner'
+      COLLATION: 'Collation', DINER: 'Dîner', SNACK: 'Snack'
     };
     return map[type] ?? type;
+  }
+
+  getExerciceCategorie(ex: Exercice): string {
+    if ((ex.dureeSecondes ?? 0) >= 120) return 'Cardio';
+    if ((ex.series ?? 0) >= 3) return 'Force';
+    return 'Général';
   }
 
   goTo(section: Section): void {
     this.activeSection = section;
   }
 
-  // ✅ FIX : redirige vers la liste si pas de nutritionniste sélectionné
   openCalendarFor(target: 'nutritionniste' | 'coach'): void {
     if (target === 'nutritionniste' && !this.nutritionnisteSelectionne) {
       this.activeSection = 'rdv-nutritionniste';
       return;
     }
-
+    if (target === 'coach' && !this.coachSelectionne) {
+      this.activeSection = 'rdv-coach';
+      return;
+    }
     this.calendarTarget = target;
     this.showCalendar = true;
     this.selectedDate = null;
@@ -281,22 +431,14 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   prevMonth(): void {
-    if (this.calendarMonth === 0) {
-      this.calendarMonth = 11;
-      this.calendarYear--;
-    } else {
-      this.calendarMonth--;
-    }
+    if (this.calendarMonth === 0) { this.calendarMonth = 11; this.calendarYear--; }
+    else { this.calendarMonth--; }
     this.buildCalendar();
   }
 
   nextMonth(): void {
-    if (this.calendarMonth === 11) {
-      this.calendarMonth = 0;
-      this.calendarYear++;
-    } else {
-      this.calendarMonth++;
-    }
+    if (this.calendarMonth === 11) { this.calendarMonth = 0; this.calendarYear++; }
+    else { this.calendarMonth++; }
     this.buildCalendar();
   }
 
@@ -310,86 +452,44 @@ export class PatientDashboard implements OnInit, OnDestroy {
     if (!this.isSlotTaken(slot)) this.selectedSlot = slot;
   }
 
-  // ✅ FIX PRINCIPAL : confirmationDone mis à true uniquement dans next/error
   confirmRdv(): void {
-  if (!this.selectedDate || !this.selectedSlot || !this.rdvMotif.trim()) return;
+    if (!this.selectedDate || !this.selectedSlot || !this.rdvMotif.trim()) return;
 
-  const [h, m] = this.selectedSlot.split(':');
-  const d = new Date(this.selectedDate);
-  d.setHours(+h, +m, 0, 0);
+    const [h, m] = this.selectedSlot.split(':');
+    const d = new Date(this.selectedDate);
+    d.setHours(+h, +m, 0, 0);
 
-  // ✅ Heure locale au lieu de UTC
-  const dateHeure = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:00`;
+    const dateHeure = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
 
-  const nutriId = this.nutritionnisteSelectionne?.id ?? this.nutritionnisteId;
+    const nutriId = this.nutritionnisteSelectionne?.id ?? this.nutritionnisteId;
 
-  const rdv: any = {
-    userId: String(this.userId),
-    typeIntervenant: this.calendarTarget === 'nutritionniste' ? 'NUTRITIONNISTE' : 'COACH',
-    dateHeure: dateHeure,  // ✅ heure locale
-    motif: this.rdvMotif.trim(),
-    dureeMinutes: 30,
-    statut: 'EN_ATTENTE'
-  };
+    const rdv: any = {
+      userId: String(this.userId),
+      typeIntervenant: this.calendarTarget === 'nutritionniste' ? 'NUTRITIONNISTE' : 'COACH',
+      dateHeure,
+      motif: this.rdvMotif.trim(),
+      dureeMinutes: 30,
+      statut: 'EN_ATTENTE'
+    };
 
-  if (this.calendarTarget === 'nutritionniste') {
-    if (!nutriId) {
-      this.closeCalendar();
-      this.activeSection = 'rdv-nutritionniste';
-      return;
+    if (this.calendarTarget === 'nutritionniste') {
+      rdv.nutritionnisteId = String(nutriId);
+    } else {
+      rdv.coachId = String(this.coachSelectionne?.id ?? this.coachId);
     }
-    rdv.nutritionnisteId = String(nutriId);
-  } else {
-    if (!this.coachId) {
-      this.confirmationDone = true;
-      this.confirmationError = true;
-      return;
-    }
-    rdv.coachId = String(this.coachId);
-  }
 
-  // ✅ Log pour vérifier le payload
-  console.log('📤 Payload RDV envoyé:', rdv);
-
-  this.rdvService.create(rdv).subscribe({
-    next: (res) => {
-      console.log('✅ RDV créé:', res);
-      this.confirmationDone = true;
-      this.confirmationError = false;
-      if (this.calendarTarget === 'nutritionniste') {
-        this.loadRdvNutri(nutriId);
-      } else {
-        this.loadRdvCoach();
+    this.rdvService.create(rdv).subscribe({
+      next: () => {
+        this.confirmationDone = true;
+        this.confirmationError = false;
+        if (this.calendarTarget === 'nutritionniste') this.loadRdvNutri(nutriId);
+        else this.loadRdvCoach(this.coachSelectionne?.id ?? this.coachId);
+      },
+      error: () => {
+        this.confirmationDone = true;
+        this.confirmationError = true;
       }
-    },
-    error: (err) => {
-      console.error('❌ Erreur création RDV:', err);
-      this.confirmationDone = true;
-      this.confirmationError = true;
-    }
-  });
-}
-// ✅ Ajoutez cette méthode
-selectEtOuvrirCalendrier(nutri: any): void {
-  console.log('🟢 Nutritionniste sélectionné:', nutri);  // ← debug
-  
-  this.nutritionnisteSelectionne = nutri;
-  this.nutritionnisteId = nutri.id;
-  this.loadRdvNutri(nutri.userId);
-  this.calendarTarget = 'nutritionniste';
-  this.showCalendar = true;
-  this.selectedDate = null;
-  this.selectedSlot = null;
-  this.confirmationDone = false;
-  this.confirmationError = false;
-  this.rdvMotif = '';
-  this.buildCalendar();
-  
-  console.log('🟢 showCalendar:', this.showCalendar);  // ← debug
-}
-  // ✅ FIX NG0955 : trackBy correct
-  trackByIndex(index: number): number {
-    return index;
+    });
   }
 
   resetCalendar(): void {
@@ -404,14 +504,13 @@ selectEtOuvrirCalendrier(nutri: any): void {
     if (!day) return false;
     const t = new Date();
     return day === t.getDate() &&
-           this.calendarMonth === t.getMonth() &&
-           this.calendarYear === t.getFullYear();
+      this.calendarMonth === t.getMonth() &&
+      this.calendarYear === t.getFullYear();
   }
 
   isPastDay(day: number | null): boolean {
     if (!day) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
     return new Date(this.calendarYear, this.calendarMonth, day) < today;
   }
 
@@ -420,21 +519,18 @@ selectEtOuvrirCalendrier(nutri: any): void {
     const dow = new Date(this.calendarYear, this.calendarMonth, day).getDay();
     return dow === 0 || dow === 6;
   }
-  
 
   isSelectedDay(day: number | null): boolean {
     if (!day || !this.selectedDate) return false;
     return day === this.selectedDate.getDate() &&
-           this.calendarMonth === this.selectedDate.getMonth() &&
-           this.calendarYear === this.selectedDate.getFullYear();
+      this.calendarMonth === this.selectedDate.getMonth() &&
+      this.calendarYear === this.selectedDate.getFullYear();
   }
 
   isSlotTaken(slot: string): boolean {
     if (!this.selectedDate) return false;
     const dateStr = this.fmtDate(this.selectedDate);
-    const taken = this.calendarTarget === 'nutritionniste'
-      ? this.takenSlotsNutri
-      : this.takenSlotsCoach;
+    const taken = this.calendarTarget === 'nutritionniste' ? this.takenSlotsNutri : this.takenSlotsCoach;
     return taken.some(t => t.date === dateStr && t.heure === slot);
   }
 
@@ -451,10 +547,7 @@ selectEtOuvrirCalendrier(nutri: any): void {
 
   getImcPercent(): string {
     if (!this.derniereConsultation) return '0%';
-    const pct = Math.min(
-      Math.max(((this.derniereConsultation.imc - 16) / 24) * 100, 0),
-      100
-    );
+    const pct = Math.min(Math.max(((this.derniereConsultation.imc - 16) / 24) * 100, 0), 100);
     return `${pct.toFixed(1)}%`;
   }
 
@@ -465,6 +558,12 @@ selectEtOuvrirCalendrier(nutri: any): void {
     if (v < 25)   return 'Poids normal ✓';
     if (v < 30)   return 'Surpoids';
     return 'Obésité';
+  }
+
+  getImcFromProfile(): string {
+    if (!this.profile.weight || !this.profile.height) return '—';
+    const h = this.profile.height / 100;
+    return (this.profile.weight / (h * h)).toFixed(1);
   }
 
   get totalRdvNutri(): number {

@@ -15,21 +15,27 @@ import { NutritionistDashboard } from './components/dashboard/nutritionist-dashb
 import { BloomerDashboard } from './components/dashboard/bloomer-dashboard/bloomer-dashboard';
 
 export const routes: Routes = [
-  { path: 'Acceuil', title: 'Acceuil', component: Acceuil },
-  { path: 'authentification/:role', title: 'authentification', component: Authentification },
-  { path: 'inscrire/nutritionist', component: InscritNutritionist },
-  { path: 'inscrire/coach', component: InscritCoach },
-  { path: 'inscrire/bloomer', component: InscritBloomer },
-  { path: 'abonnement', component: Abonnement },
-  { path: 'conversation', component: Conversation },
-  { path: 'conversation/:patientId', component: Conversation },
-  { path: 'dashboard/nutritionist', component: NutritionistDashboard },
-  { path: 'dashboard/coach', component: CoachDashboard },
-  { path: 'dashboard/bloomer/:userId', component: BloomerDashboard },
-{ path: 'dashboard/patient/:userId', component: PatientDashboard },
-{ path: 'dashboard/:userId', component: BloomerDashboard },
-  { path: 'forget-password', component: RequestMail },
-  { path: 'verify-code', component: VerifyCode },
-  { path: 'reset-password', component: ResetPassword },
-  { path: '', redirectTo: 'Acceuil', pathMatch: 'full' },
+  { path: 'Acceuil',                    title: 'Acceuil',         component: Acceuil },
+  { path: 'authentification/:role',     title: 'authentification', component: Authentification },
+  { path: 'inscrire/nutritionist',      component: InscritNutritionist },
+  { path: 'inscrire/coach',             component: InscritCoach },
+  { path: 'inscrire/bloomer',           component: InscritBloomer },
+  { path: 'abonnement',                 component: Abonnement },
+  { path: 'conversation',               component: Conversation },
+  { path: 'conversation/:patientId',    component: Conversation },
+  { path: 'dashboard/nutritionist',     component: NutritionistDashboard },
+  { path: 'dashboard/coach',            component: CoachDashboard },
+
+  // ✅ Bloomer — avec et sans userId dans l'URL
+  { path: 'dashboard/bloomer/:userId',  component: BloomerDashboard },
+  { path: 'dashboard/bloomer',          component: BloomerDashboard },
+
+  // ✅ Patient — avec et sans userId dans l'URL
+  { path: 'dashboard/patient/:userId',  component: PatientDashboard },
+  { path: 'dashboard/patient',          component: PatientDashboard },
+
+  { path: 'forget-password',            component: RequestMail },
+  { path: 'verify-code',                component: VerifyCode },
+  { path: 'reset-password',             component: ResetPassword },
+  { path: '',                           redirectTo: 'Acceuil', pathMatch: 'full' },
 ];

@@ -9,13 +9,15 @@ export class RendezVousService {
 
   constructor(private http: HttpClient) {}
 
-  // ✅ Helper : génère les headers avec le token JWT
   private getHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
     });
+  }
+ getAllCoaches(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.api}/coachs`, { headers: this.getHeaders() });
   }
 
   getAll(): Observable<RendezVous[]> {
