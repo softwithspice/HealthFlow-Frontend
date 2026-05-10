@@ -13,7 +13,7 @@ import { switchMap } from 'rxjs/operators';
 export interface MessageDTO {
   id: number;
   conversationId: number;
-  senderId: number;
+  senderId: any;
   senderRole: 'PATIENT' | 'NUTRITIONIST' | 'COACH';
   content: string;
   isRead: boolean;
@@ -22,8 +22,10 @@ export interface MessageDTO {
 
 export interface ConversationDTO {
   id: number;
-  patientId: number;
-  nutritionistId: number;
+  patientId: any;
+  nutritionistId?: any;
+  coachId?: any;
+  type: 'NUTRITIONIST_PATIENT' | 'COACH_PATIENT';
   status: 'ACTIVE' | 'CLOSED' | 'ARCHIVED';
   createdAt: string;
   updatedAt: string;
@@ -41,13 +43,14 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
 
   @ViewChild('messagesEl') private messagesEl!: ElementRef<HTMLDivElement>;
 
-  @Input() initialPatientId: number | null = null;  // ← AJOUT
+  @Input() initialPatientId: string | number | null = null;
 @Input() patients: { id: any, nom: string }[] = []; // ← AJOUT
 @Input() targets: any[] = []; // ← AJOUT pour les patients (nutritionnistes/coachs)
 @Input() nutritionistName: string = '';  // ← AJOUTER CETTE LIGNE
-@Input() role: string = '';          // ← fix erreur patient-dashboard
-@Input() userId: any = null;         // ← fix erreur patient-dashboard  
-@Input() targetId: number = 0;       // ← fix erreur patient-dashboard
+@Input() role: string = '';
+@Input() userId: any = null;
+@Input() targetId: string | number = 0;
+@Input() targetType: 'NUTRITIONIST' | 'COACH' = 'NUTRITIONIST';
   currentRole: 'NUTRITIONIST' | 'PATIENT' | 'COACH' = 'NUTRITIONIST';
   currentUserId: any = 1;
   nutritionistId: any = 1;
@@ -69,8 +72,8 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   sendingMessage = false;
 
   showNewConvModal = false;
-  newConvPatientId: number | null = null;
-  newConvNutritionistId: number | null = this.nutritionistId;
+  newConvPatientId: any = null;
+  newConvNutritionistId: any = null;
   newConvError = '';
   creatingConv = false;
 
@@ -139,11 +142,18 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.stopPolling();
   }
 
-  autoOpenOrCreateConversation(patientId: any, nutritionistId: any): void {
-    const payload = {
-      patientId: patientId,                    
-      nutritionistId: nutritionistId      
-    };    
+  autoOpenOrCreateConversation(patientId: any, targetId: any): void {
+    const payload: any = {
+      patientId: patientId,
+      status: 'ACTIVE'
+    };
+
+    if (this.targetType === 'COACH') {
+      payload.coachId = targetId;
+    } else {
+      payload.nutritionistId = targetId;
+    }
+
     this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload, { headers: this.getHeaders() }).subscribe({
       next: conv => this.ngZone.run(() => {
         const idx = this.conversations.findIndex(c => c.id === conv.id);
@@ -156,9 +166,14 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
   }
 
   loadConversations(): void {
-    const url = this.currentRole === 'PATIENT'
-      ? `${this.apiUrl}/conversations/patient/${this.currentUserId}`
-      : `${this.apiUrl}/conversations/nutritionist/${this.currentUserId}`;
+    let url = '';
+    if (this.currentRole === 'PATIENT') {
+      url = `${this.apiUrl}/conversations/patient/${this.currentUserId}`;
+    } else if (this.currentRole === 'COACH') {
+      url = `${this.apiUrl}/conversations/coach/${this.currentUserId}`;
+    } else {
+      url = `${this.apiUrl}/conversations/nutritionist/${this.currentUserId}`;
+    }
 
     this.http.get<ConversationDTO[]>(url, { headers: this.getHeaders() }).subscribe({
       next: data => this.ngZone.run(() => {
@@ -311,7 +326,7 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.newConvError = '';
     if (this.currentRole === 'PATIENT') {
       this.newConvPatientId = this.currentUserId;
-      this.newConvNutritionistId = null;
+      this.newConvNutritionistId = this.targetType === 'NUTRITIONIST' ? this.targetId : null;
     } else {
       this.newConvPatientId = null;
       this.newConvNutritionistId = this.currentUserId;
@@ -330,10 +345,16 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
     this.creatingConv = true;
     this.newConvError = '';
 
-    const payload = {
+    const payload: any = {
       patientId: this.newConvPatientId,
-      nutritionistId: this.newConvNutritionistId,
-   };
+      status: 'ACTIVE'
+    };
+
+    if (this.targetType === 'COACH' || this.currentRole === 'COACH') {
+      payload.coachId = this.newConvNutritionistId;
+    } else {
+      payload.nutritionistId = this.newConvNutritionistId;
+    }
 
     this.http.post<ConversationDTO>(`${this.apiUrl}/conversations`, payload, { headers: this.getHeaders() }).subscribe({
       next: conv => this.ngZone.run(() => {
@@ -354,23 +375,52 @@ export class ConversationComponent implements OnInit, OnDestroy, AfterViewChecke
       })
     });
   }
-get filteredConversations(): ConversationDTO[] {
-  if (!this.searchQuery.trim()) return this.conversations;
-  const q = this.searchQuery.toLowerCase();
-  return this.conversations.filter(c => {
-    const patientLabel = this.getOtherLabel(c).toLowerCase();
-    return patientLabel.includes(q) ||
-      String(c.patientId).includes(q) ||
-      c.status.toLowerCase().includes(q);
-  });
-}
+  get filteredConversations(): ConversationDTO[] {
+    let list = this.conversations;
+
+    // Filter by type if Patient to separate Nutritionist and Coach messages
+    if (this.currentRole === 'PATIENT') {
+      const type = this.targetType === 'COACH' ? 'COACH_PATIENT' : 'NUTRITIONIST_PATIENT';
+      list = list.filter(c => c.type === type);
+    }
+
+    if (!this.searchQuery.trim()) return list;
+    const q = this.searchQuery.toLowerCase();
+    return list.filter(c => {
+      const label = this.getOtherLabel(c).toLowerCase();
+      return label.includes(q) ||
+        String(c.patientId).includes(q) ||
+        c.status.toLowerCase().includes(q);
+    });
+  }
 
   getOtherLabel(conv: ConversationDTO): string {
     if (this.currentRole !== 'PATIENT') {
-      const found = this.patients.find(p => p.id === conv.patientId);
-      return found ? found.nom : `Patient #${conv.patientId}`;
+      const found = this.patients.find(p => String(p.id) === String(conv.patientId));
+      return found ? found.nom : 'Client';
     }
-    return `Contact #${conv.nutritionistId}`;
+    
+    const id = conv.type === 'COACH_PATIENT' ? conv.coachId : conv.nutritionistId;
+    // On cherche dans targets (coaches ou nutritionnistes)
+    const found = this.targets.find(t => String(t.id) === String(id) || String(t.userId) === String(id));
+    
+    if (found) {
+      const name = (found.prenom || '') + ' ' + (found.nom || '');
+      return name.trim() || (conv.type === 'COACH_PATIENT' ? 'Mon Coach' : 'Mon Nutritionniste');
+    }
+
+    return conv.type === 'COACH_PATIENT' ? 'Mon Coach' : 'Mon Nutritionniste';
+  }
+
+  getOtherInitials(conv: ConversationDTO): string {
+    const label = this.getOtherLabel(conv);
+    if (!label || label.includes('#')) return '?';
+    
+    const parts = label.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return label[0].toUpperCase();
   }
 
   lastMessage(conv: ConversationDTO): string {

@@ -731,6 +731,55 @@
   white-space: nowrap;
 }
 
+/* ── Tracking Empty Action ─────────────────────── */
+.tracking-empty-action {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  text-align: center;
+  border: 1px dashed var(--c-border);
+}
+
+.tracking-empty-action p {
+  font-size: 13px;
+  color: var(--c-muted);
+  margin-bottom: 12px;
+}
+
+.btn-complete-suivi {
+  display: inline-block;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--c-sage-light), var(--c-sage));
+  color: white;
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(82, 183, 136, 0.3);
+}
+
+.btn-complete-suivi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(82, 183, 136, 0.4);
+  filter: brightness(1.1);
+}
+
+.btn-complete-suivi:active {
+  transform: translateY(0);
+}
+
+@keyframes bounceSmall {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.btn-complete-suivi-anim {
+  animation: bounceSmall 2s infinite ease-in-out;
+}
+
+
 .badge-status.pending {
   background: #fef9c3;
   color: #854d0e;

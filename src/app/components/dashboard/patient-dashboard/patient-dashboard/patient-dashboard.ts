@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, PLATFORM_ID, inject } from '@angular/core
 import { CommonModule, DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 import { RendezVousService } from '../../../services/rendez-vous';
@@ -12,6 +12,8 @@ import { ConversationComponent } from '../../../conversation/conversation';
 import { RendezVous } from '../../../../interfaces/rendez-vous';
 import { Consultation } from '../../../../interfaces/consultation';
 import { Patient, PatientService } from '../../../services/patient';
+import { SuiviService } from '../../../../services/suivi';
+import { ObjectifService } from '../../../../services/objectif-personnel';
 import { PatientInfo } from '../../../../interfaces/PatientInfo';
 
 interface RepasJour {
@@ -72,7 +74,7 @@ export type Section =
 @Component({
   selector: 'app-patient-dashboard',
   standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, ConversationComponent],
+  imports: [CommonModule, DatePipe, DecimalPipe, FormsModule, ConversationComponent, RouterLink],
   templateUrl: './patient-dashboard.html',
   styleUrls: ['./patient-dashboard.css']
 })
@@ -98,7 +100,17 @@ export class PatientDashboard implements OnInit, OnDestroy {
   activeTabCoach: 'attente' | 'confirme' | 'refuse' = 'attente';
 
   takenSlotsNutri: { date: string; heure: string }[] = [];
+
+  // Suivi Quotidien (Daily Tracking)
+  dailyStats = {
+    water: 0, goalWater: 2.5,
+    activity: 0, goalActivity: 5,
+    nutrition: 0, // percentage
+    sleep: 0, goalSleep: 8
+  };
+  hasDailyData = false;
   takenSlotsCoach: { date: string; heure: string }[] = [];
+  confirmingRdv = false;
 
   consultations: Consultation[] = [];
   derniereConsultation: Consultation | null = null;
@@ -175,6 +187,8 @@ export class PatientDashboard implements OnInit, OnDestroy {
     private consultService: ConsultationService,
     private http: HttpClient,
     private patientService: PatientService,
+    private suiviService: SuiviService,
+    private objectifService: ObjectifService,
     private route: ActivatedRoute
   ) { }
 
@@ -219,6 +233,34 @@ export class PatientDashboard implements OnInit, OnDestroy {
     this.loadProgramme();
     this.loadNutritionnistes();
     this.loadCoaches();
+    this.loadDailyTracking();
+  }
+
+  loadDailyTracking(): void {
+    if (!this.userId) return;
+    
+    // 1. Get Goals
+    this.objectifService.getObjectif(this.userId).subscribe({
+      next: (goals: any) => {
+        this.dailyStats.goalWater = goals.objectif_coupes_eau || 2.5;
+        this.dailyStats.goalSleep = goals.objectif_heures_sommeil || 8;
+        this.dailyStats.goalActivity = goals.objectif_exercices_semaine || 5;
+        
+        // 2. Get Real Data
+        this.suiviService.getSuiviDuJour(this.userId).subscribe({
+          next: (suivi: any) => {
+            this.dailyStats.water = suivi.nb_coupes_bues || 0;
+            this.dailyStats.sleep = suivi.nb_heures_sommeil || 0;
+            this.dailyStats.activity = suivi.nb_exercices_faites || 0;
+            
+            // Calculate nutrition based on calories if possible (mocked for now as per user request values)
+            this.dailyStats.nutrition = 78; // Default mock as per user request
+            
+            this.hasDailyData = (this.dailyStats.water > 0 || this.dailyStats.sleep > 0 || this.dailyStats.activity > 0);
+          }
+        });
+      }
+    });
   }
 
   loadProfile(): void {
@@ -537,7 +579,10 @@ export class PatientDashboard implements OnInit, OnDestroy {
   }
 
   confirmRdv(): void {
+    if (this.confirmingRdv) return;
     if (!this.selectedDate || !this.selectedSlot || !this.rdvMotif.trim()) return;
+    
+    this.confirmingRdv = true;
 
     const [h, m] = this.selectedSlot.split(':');
     const d = new Date(this.selectedDate);
@@ -566,12 +611,14 @@ export class PatientDashboard implements OnInit, OnDestroy {
       next: () => {
         this.confirmationDone = true;
         this.confirmationError = false;
+        this.confirmingRdv = false;
         if (this.calendarTarget === 'nutritionniste') this.loadRdvNutri(nutriId);
         else this.loadRdvCoach(this.coachSelectionne?.id ?? this.coachId);
       },
       error: () => {
         this.confirmationDone = true;
         this.confirmationError = true;
+        this.confirmingRdv = false;
       }
     });
   }

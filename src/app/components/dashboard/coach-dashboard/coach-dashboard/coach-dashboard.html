@@ -418,15 +418,13 @@
 
     <!-- ═══ CONVERSATIONS TAB ═══ -->
     @if (activeTab === 'Conversations') {
-      <section class="section conv-section">
-        @if (showConversation) {
-          <app-conversation
-            [patients]="confirmedClients"
-            [initialPatientId]="selectedClientId"
-            [role]="'coach'"
-            [userId]="coachIdentity?.coachId"
-          ></app-conversation>
-        }
+      <section class="section card" style="height: 80vh; display: flex; flex-direction: column; padding: 0;">
+        <app-conversation 
+          style="flex: 1;"
+          [role]="'COACH'" 
+          [userId]="coachIdentity?.coachId"
+          [patients]="confirmedClients">
+        </app-conversation>
       </section>
     }
 

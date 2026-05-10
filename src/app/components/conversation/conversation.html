@@ -32,7 +32,7 @@
           (click)="selectConversation(conv)"
         >
           <div class="conv-item-avatar" [class]="avatarColor(conv.id)">
-            {{ getOtherLabel(conv) }}
+            {{ getOtherInitials(conv) }}
           </div>
           <div class="conv-item-body">
             <div class="conv-item-top">
@@ -75,7 +75,7 @@
       <div class="conv-thread-header">
         <div class="conv-thread-user">
           <div class="conv-thread-avatar" [class]="avatarColor(selectedConv.id)">
-            {{ getOtherLabel(selectedConv) }}
+            {{ getOtherInitials(selectedConv) }}
           </div>
           <div class="conv-thread-meta">
             <span class="conv-thread-name">{{ getOtherLabel(selectedConv) }}</span>

@@ -342,6 +342,10 @@ export class CoachDashboard implements OnInit {
     return this.conversations.reduce((sum, conversation) => sum + conversation.unreadCount, 0);
   }
 
+  get clientsForChat() {
+    return this.clients.map(c => ({ id: c.id, nom: c.name }));
+  }
+
   // ── RDV METHODS ──────────────────────────────────────────────────────────
 
   loadRdv(): void {
