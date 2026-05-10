@@ -1,6 +1,7 @@
 import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, DatePipe, isPlatformBrowser } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +18,7 @@ import {
 } from '../../../services/coach-dashboard-service';
 import { RendezVousService } from '../../../services/rendez-vous';
 import { RendezVous } from '../../../../interfaces/rendez-vous';
+import { ConversationComponent } from '../../../conversation/conversation';
 
 type SubscriptionState = 'Active' | 'Expired';
 
@@ -84,13 +86,15 @@ interface NotificationItem {
 
 @Component({
   selector: 'app-coach-dashboard',
-  imports: [CommonModule, DatePipe, FormsModule],
+  imports: [CommonModule, DatePipe, FormsModule, ConversationComponent],
   templateUrl: './coach-dashboard.html',
   styleUrl: './coach-dashboard.css',
 })
 export class CoachDashboard implements OnInit {
-  readonly coachName = 'Coach Samira';
-  readonly coachRole = 'Performance Coach';
+  coachName = 'Coach';
+  get coachRole(): string {
+    return this.coachProfile?.coachSpecialite || 'Coach';
+  }
   readonly searchPlaceholder = 'Search clients, plans, exercises...';
   readonly apiErrorDefault = 'Error loading dashboard data.';
 
@@ -106,7 +110,7 @@ export class CoachDashboard implements OnInit {
     { label: 'Clients', icon: '🧑‍🤝‍🧑' },
     { label: 'Workout Plans', icon: '📋' },
     { label: 'Exercises', icon: '🏋️' },
-    { label: 'Conversations', icon: '💬', badgeCount: 8 },
+    { label: 'Conversations', icon: '💬' },
     { label: 'Subscription', icon: '💳' },
     { label: 'Profile', icon: '👤' },
   ];
@@ -114,18 +118,51 @@ export class CoachDashboard implements OnInit {
   activeTab: string = 'Dashboard';
 
   workoutPlans: WorkoutPlanItem[] = [];
-
   exercises: ExerciseItem[] = [];
-
   clients: ClientItem[] = [];
-
   conversations: ConversationItem[] = [];
-
   analytics: AnalyticsItem[] = [];
-
   notifications: NotificationItem[] = [];
   isLoading = false;
   apiError = '';
+
+  // ── SEARCH ────────────────────────────────────────────────────────────────
+  searchQuery = '';
+
+  get filteredWorkoutPlans(): WorkoutPlanItem[] {
+    if (!this.searchQuery.trim()) return this.workoutPlans;
+    const q = this.searchQuery.toLowerCase();
+    return this.workoutPlans.filter(p => p.nom.toLowerCase().includes(q));
+  }
+
+  get filteredExercises(): ExerciseItem[] {
+    if (!this.searchQuery.trim()) return this.exercises;
+    const q = this.searchQuery.toLowerCase();
+    return this.exercises.filter(e =>
+      e.nom.toLowerCase().includes(q) || e.categorie.toLowerCase().includes(q)
+    );
+  }
+
+  get filteredClients(): ClientItem[] {
+    if (!this.searchQuery.trim()) return this.clientsWithConfirmedRdv;
+    const q = this.searchQuery.toLowerCase();
+    return this.clientsWithConfirmedRdv.filter(c =>
+      c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)
+    );
+  }
+
+  onSearch(query: string): void {
+    if (!query.trim()) return;
+    // Auto-navigate to the most relevant tab
+    const q = query.toLowerCase();
+    const hasClient  = this.clientsWithConfirmedRdv.some(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
+    const hasPlan    = this.workoutPlans.some(p => p.nom.toLowerCase().includes(q));
+    const hasExercise = this.exercises.some(e => e.nom.toLowerCase().includes(q) || e.categorie.toLowerCase().includes(q));
+
+    if (hasClient)   { this.activeTab = 'Clients'; return; }
+    if (hasPlan)     { this.activeTab = 'Workout Plans'; return; }
+    if (hasExercise) { this.activeTab = 'Exercises'; return; }
+  }
 
   // Modal states
   showExerciseModal = false;
@@ -150,6 +187,35 @@ export class CoachDashboard implements OnInit {
 
   // Coach identity cache
   coachIdentity: CoachIdentity | null = null;
+
+  // Client full profile (loaded on modal open)
+  clientProfile: any = null;
+  clientProfileLoading = false;
+
+  // Auto-assign after plan creation
+  autoAssignClientId: string | null = null;
+
+  // Coach profile data
+  coachProfile: any = null;
+  coachProfileLoading = false;
+  coachProfileSaving = false;
+  coachProfileSuccess = '';
+  coachProfileError = '';
+  coachProfileTab: 'info' | 'security' | 'stats' = 'info';
+  coachProfileEditing = false;
+
+  coachProfileForm = {
+    prenom: '',
+    nom: '',
+    telephone: '',
+    coachSpecialite: '',
+    certifications: ''
+  };
+
+  coachPasswordForm = {
+    nouveau: '',
+    confirmer: ''
+  };
 
   // Form data
   exerciseForm: Omit<CoachExerciseDto, 'id'> = {
@@ -197,10 +263,17 @@ export class CoachDashboard implements OnInit {
   activeRdvTab: 'attente' | 'confirme' | 'refuse' = 'attente';
   rdvLoading = false;
 
+  // ── CONVERSATIONS ─────────────────────────────────────────────────────────
+  selectedClientId: number | null = null;
+  conversationKey = 0; // incremented to force ConversationComponent recreation
+  showConversation = true; // toggled to force recreation
+
   constructor(
     private readonly coachDashboardService: CoachDashboardService,
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly rdvService: RendezVousService,
+    private readonly http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object,
   ) {}
 
@@ -217,6 +290,20 @@ export class CoachDashboard implements OnInit {
     this.coachIdentity = identity;
     this.loadDashboardData(identity);
     this.loadRdv();
+
+    // Load coach name from localStorage (set at login)
+    if (isPlatformBrowser(this.platformId)) {
+      const prenom = localStorage.getItem('prenom') ?? '';
+      const nom    = localStorage.getItem('nom') ?? '';
+      if (prenom || nom) {
+        this.coachName = ('Coach ' + prenom + ' ' + nom).trim();
+      }
+    }
+
+    // Load full coach profile
+    if (identity.coachId) {
+      this.loadCoachProfile(identity.coachId);
+    }
   }
 
   private getCoachId(): string | undefined {
@@ -243,7 +330,7 @@ export class CoachDashboard implements OnInit {
 
   get overviewCards(): OverviewCard[] {
     return [
-      { label: 'Total Clients', value: String(this.clients.length), helper: 'Across active programs', accent: 'green' },
+      { label: 'Total Clients', value: String(this.clientsWithConfirmedRdv.length), helper: 'Clients with confirmed appointments', accent: 'green' },
       { label: 'Active Workout Plans', value: String(this.workoutPlans.length), helper: 'Recently updated plans', accent: 'blue' },
       { label: 'Total Exercises', value: String(this.exercises.length), helper: 'Reusable exercise library', accent: 'purple' },
       { label: 'Unread Messages', value: String(this.totalUnreadMessages), helper: 'Needs your response', accent: 'orange' },
@@ -258,14 +345,19 @@ export class CoachDashboard implements OnInit {
   // ── RDV METHODS ──────────────────────────────────────────────────────────
 
   loadRdv(): void {
-    const coachId = Number(
+    const coachId =
       this.route.snapshot.queryParamMap.get('coachId') ??
       (isPlatformBrowser(this.platformId) ? localStorage.getItem('userId') : null) ??
       (isPlatformBrowser(this.platformId) ? sessionStorage.getItem('userId') : null) ??
-      '2'
-    );
+      '';
+
+    if (!coachId) {
+      this.rdvLoading = false;
+      return;
+    }
+
     this.rdvLoading = true;
-    this.rdvService.getByCoach(String(coachId)).subscribe({
+    this.rdvService.getByCoach(coachId).subscribe({
       next: (data: RendezVous[]) => {
         this.rdvEnAttente = data.filter(r => r.statut === 'EN_ATTENTE');
         this.rdvConfirmes = data.filter(r => r.statut === 'CONFIRME');
@@ -292,12 +384,161 @@ export class CoachDashboard implements OnInit {
     return this.rdvEnAttente.length;
   }
 
+  /**
+   * Clients who have a CONFIRMED appointment with this coach.
+   * These are the only clients available for conversation — mirrors
+   * the nutritionist's patientsConfirmes pattern.
+   */
+  get confirmedClients(): { id: any; nom: string }[] {
+    return this.rdvConfirmes.map(r => ({
+      id: r.userId,
+      nom: r.patientNom || 'Client #' + r.userId,
+    }));
+  }
+
+  /**
+   * Full ClientItem list filtered to only those with a confirmed RDV.
+   * Used in the Clients tab so the coach only sees clients who booked.
+   */
+  get clientsWithConfirmedRdv(): ClientItem[] {
+    const confirmedIds = new Set(this.rdvConfirmes.map(r => String(r.userId)));
+    return this.clients.filter(c => confirmedIds.has(String(c.id)));
+  }
+
+  openConversation(userId: any): void {
+    this.selectedClientId = Number(userId);
+    // Force ConversationComponent recreation by toggling showConversation
+    this.showConversation = false;
+    setTimeout(() => { this.showConversation = true; }, 0);
+    this.setActiveTab('Conversations');
+  }
+
   setActiveTab(tab: string): void {
     this.activeTab = tab;
-    if (tab === 'Profile') {
-      // In a real app, this might navigate to a separate route
-      console.log('Navigating to Professional Profile...');
+    if (tab === 'Profile' && this.coachIdentity?.coachId && !this.coachProfile) {
+      this.loadCoachProfile(this.coachIdentity.coachId);
     }
+  }
+
+  // ── COACH PROFILE ─────────────────────────────────────────────────────────
+
+  loadCoachProfile(coachId: string): void {
+    this.coachProfileLoading = true;
+    const token = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('token') ?? sessionStorage.getItem('token'))
+      : null;
+    const email = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('email') ?? sessionStorage.getItem('email') ?? '')
+      : '';
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+
+    // Use /by-email endpoint — most reliable, no ID lookup issues
+    const url = `http://localhost:8084/api/coaches/by-email?email=${encodeURIComponent(email)}`;
+
+    this.http.get<any>(url, { headers }).subscribe({
+      next: (data) => {
+        this.coachProfile = data;
+        this.coachProfileLoading = false;
+        this.coachName = `Coach ${data.prenom ?? ''} ${data.nom ?? ''}`.trim();
+        this.coachProfileForm = {
+          prenom:          data.prenom          ?? '',
+          nom:             data.nom             ?? '',
+          telephone:       data.telephone       ?? '',
+          coachSpecialite: data.coachSpecialite ?? '',
+          certifications:  data.certifications  ?? ''
+        };
+      },
+      error: () => { this.coachProfileLoading = false; }
+    });
+  }
+
+  saveCoachProfile(): void {
+    if (!this.coachIdentity?.coachId) return;
+    this.coachProfileSaving = true;
+    this.coachProfileSuccess = '';
+    this.coachProfileError = '';
+
+    const token = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('token') ?? sessionStorage.getItem('token'))
+      : null;
+    const email = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('email') ?? sessionStorage.getItem('email') ?? '')
+      : '';
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    const url = `http://localhost:8084/api/coaches/by-email?email=${encodeURIComponent(email)}`;
+
+    this.http.put<any>(url, this.coachProfileForm, { headers }).subscribe({
+      next: () => {
+        this.coachProfileSaving = false;
+        this.coachProfileSuccess = 'Profile updated successfully!';
+        this.coachProfileEditing = false;
+        this.coachName = `Coach ${this.coachProfileForm.prenom} ${this.coachProfileForm.nom}`.trim();
+        if (this.coachProfile) {
+          this.coachProfile.prenom          = this.coachProfileForm.prenom;
+          this.coachProfile.nom             = this.coachProfileForm.nom;
+          this.coachProfile.telephone       = this.coachProfileForm.telephone;
+          this.coachProfile.coachSpecialite = this.coachProfileForm.coachSpecialite;
+          this.coachProfile.certifications  = this.coachProfileForm.certifications;
+        }
+        setTimeout(() => this.coachProfileSuccess = '', 3000);
+      },
+      error: (err: any) => {
+        this.coachProfileSaving = false;
+        this.coachProfileError = err?.error?.message ?? 'Failed to update profile.';
+      }
+    });
+  }
+
+  saveCoachPassword(): void {
+    this.coachProfileError = '';
+    if (!this.coachPasswordForm.nouveau || !this.coachPasswordForm.confirmer) {
+      this.coachProfileError = 'Please fill in all fields.'; return;
+    }
+    if (this.coachPasswordForm.nouveau !== this.coachPasswordForm.confirmer) {
+      this.coachProfileError = 'Passwords do not match.'; return;
+    }
+    if (this.coachPasswordForm.nouveau.length < 8) {
+      this.coachProfileError = 'Minimum 8 characters.'; return;
+    }
+    if (!this.coachIdentity?.coachId) return;
+
+    this.coachProfileSaving = true;
+    const token = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('token') ?? sessionStorage.getItem('token'))
+      : null;
+    const email = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('email') ?? sessionStorage.getItem('email') ?? '')
+      : '';
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    const url = `http://localhost:8084/api/coaches/by-email/change-password?email=${encodeURIComponent(email)}`;
+
+    this.http.post<any>(url, { newPassword: this.coachPasswordForm.nouveau }, { headers }).subscribe({
+      next: () => {
+        this.coachProfileSaving = false;
+        this.coachProfileSuccess = 'Password changed successfully!';
+        this.coachPasswordForm = { nouveau: '', confirmer: '' };
+        setTimeout(() => this.coachProfileSuccess = '', 3000);
+      },
+      error: (err: any) => {
+        this.coachProfileSaving = false;
+        this.coachProfileError = err?.error?.error ?? 'Failed to change password.';
+      }
+    });
+  }
+
+  logout(): void {
+    if (confirm('Are you sure you want to log out?')) {
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+      window.location.href = '/authentification/coach';
+    }
+  }
+
+  renewSubscription(): void {
+    // Navigate to the subscription page — it handles existing users via localStorage
+    this.router.navigate(['/abonnement']);
   }
 
   // ── DASHBOARD DATA ────────────────────────────────────────────────────────
@@ -315,7 +556,7 @@ export class CoachDashboard implements OnInit {
         console.error('Error loading plans:', err);
         return of([]);
       })),
-      exercises: this.coachDashboardService.getExercises().pipe(catchError(err => {
+      exercises: this.coachDashboardService.getExercises(identity.coachId).pipe(catchError(err => {
         console.error('Error loading exercises:', err);
         return of([]);
       })),
@@ -357,12 +598,52 @@ export class CoachDashboard implements OnInit {
   
   openClientDetails(client: ClientItem): void {
     this.selectedClient = client;
+    this.clientProfile = null;
+    this.clientProfileLoading = true;
     this.showClientDetailsModal = true;
+
+    const token = isPlatformBrowser(this.platformId)
+      ? (localStorage.getItem('token') ?? sessionStorage.getItem('token'))
+      : null;
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+
+    this.http.get<any>(`http://localhost:8084/api/patients/${client.id}`, { headers }).subscribe({
+      next: (data) => {
+        this.clientProfile = data;
+        this.clientProfileLoading = false;
+      },
+      error: () => {
+        this.clientProfileLoading = false;
+      }
+    });
   }
 
   closeClientDetails(): void {
     this.showClientDetailsModal = false;
     this.selectedClient = null;
+    this.clientProfile = null;
+  }
+
+  getImcValue(profile: any): number | null {
+    if (!profile?.weight || !profile?.height) return null;
+    const h = profile.height / 100;
+    return Math.round((profile.weight / (h * h)) * 10) / 10;
+  }
+
+  getImcLabel(imc: number | null): string {
+    if (imc === null) return '—';
+    if (imc < 18.5) return 'Underweight';
+    if (imc < 25)   return 'Normal';
+    if (imc < 30)   return 'Overweight';
+    return 'Obese';
+  }
+
+  getImcAccent(imc: number | null): string {
+    if (imc === null) return 'neutral';
+    if (imc < 18.5) return 'blue';
+    if (imc < 25)   return 'green';
+    if (imc < 30)   return 'orange';
+    return 'red';
   }
 
   openPlanView(planId: number): void {
@@ -383,9 +664,8 @@ export class CoachDashboard implements OnInit {
   // ── ACTIONS FROM MODALS ────────────────────────────────────────────────
   
   messageClient(client: ClientItem): void {
-    this.setActiveTab('Conversations');
     this.closeClientDetails();
-    console.log(`Messaging client: ${client.name}`);
+    this.openConversation(client.id);
   }
 
   duplicatePlan(plan: CoachWorkoutPlanSummaryDto): void {
@@ -509,6 +789,28 @@ export class CoachDashboard implements OnInit {
   openAddPlanModal(): void {
     this.isEditingPlan = false;
     this.currentPlan = null;
+    this.autoAssignClientId = null;
+    this.selectedExerciseIds = [];
+    this.tempNewExercises = [];
+    this.planForm = {
+      nom: '',
+      description: '',
+      dureeSemaines: 1,
+      seancesParSemaine: 3,
+      exercisesCount: 0,
+      actif: true,
+      dateDebut: new Date().toISOString().split('T')[0],
+      exercices: []
+    };
+    this.showPlanModal = true;
+  }
+
+  /** Opens plan creation modal and auto-assigns the new plan to the given client on save */
+  openCreatePlanForClient(clientId: string): void {
+    this.closeAssignmentModal();
+    this.autoAssignClientId = clientId;
+    this.isEditingPlan = false;
+    this.currentPlan = null;
     this.selectedExerciseIds = [];
     this.tempNewExercises = [];
     this.planForm = {
@@ -551,6 +853,7 @@ export class CoachDashboard implements OnInit {
     this.showPlanModal = false;
     this.currentPlan = null;
     this.isEditingPlan = false;
+    this.autoAssignClientId = null;
     this.selectedExerciseIds = [];
     this.tempNewExercises = [];
   }
@@ -589,7 +892,8 @@ export class CoachDashboard implements OnInit {
       return;
     }
 
-    // Build exercices list with full id field matching ExerciceDto on backend
+    const coachId = this.coachIdentity?.coachId;
+
     const exercicesForPlan = this.selectedExerciseIds.map(id => ({
       id,
       nom: '',
@@ -605,7 +909,7 @@ export class CoachDashboard implements OnInit {
     this.planForm.exercices = exercicesForPlan;
 
     if (this.isEditingPlan && this.currentPlan) {
-      this.coachDashboardService.updatePlan(this.currentPlan.id, this.planForm).subscribe({
+      this.coachDashboardService.updatePlan(this.currentPlan.id, { ...this.planForm, coachId }).subscribe({
         next: (updatedPlan) => {
           const index = this.workoutPlans.findIndex(p => p.id === updatedPlan.id);
           if (index !== -1) {
@@ -616,10 +920,32 @@ export class CoachDashboard implements OnInit {
         error: (err: any) => console.error('Error updating plan:', err)
       });
     } else {
-      this.coachDashboardService.createPlan(this.planForm).subscribe({
+      this.coachDashboardService.createPlan({ ...this.planForm, coachId }).subscribe({
         next: (newPlan) => {
           this.workoutPlans.push(this.mapPlan(newPlan));
-          this.closePlanModal();
+          // Auto-assign to client if triggered from client card
+          if (this.autoAssignClientId && coachId) {
+            this.coachDashboardService.assignPlanToClient({
+              coachId,
+              clientId: this.autoAssignClientId,
+              planExerciceId: newPlan.id
+            }).subscribe({
+              next: () => {
+                this.autoAssignClientId = null;
+                this.closePlanModal();
+                this.loadDashboardData(this.coachIdentity!);
+                alert(`Plan "${newPlan.nom}" created and assigned successfully!`);
+              },
+              error: (err: any) => {
+                this.autoAssignClientId = null;
+                this.closePlanModal();
+                console.error('Auto-assign failed:', err);
+                alert(`Plan created but assignment failed: ${err?.error?.message ?? 'Please assign manually.'}`);
+              }
+            });
+          } else {
+            this.closePlanModal();
+          }
         },
         error: (err: any) => console.error('Error creating plan:', err)
       });
@@ -684,8 +1010,10 @@ export class CoachDashboard implements OnInit {
   }
 
   saveExercise(): void {
+    const coachId = this.coachIdentity?.coachId;
+
     if (this.isEditingExercise && this.currentExercise) {
-      this.coachDashboardService.updateExercise(this.currentExercise.id, this.exerciseForm).subscribe({
+      this.coachDashboardService.updateExercise(this.currentExercise.id, { ...this.exerciseForm, coachId }).subscribe({
         next: (updatedEx) => {
           const index = this.exercises.findIndex(e => e.id === updatedEx.id);
           if (index !== -1) {
@@ -696,7 +1024,7 @@ export class CoachDashboard implements OnInit {
         error: (err: any) => console.error('Error updating exercise:', err)
       });
     } else {
-      this.coachDashboardService.createExercise(this.exerciseForm).subscribe({
+      this.coachDashboardService.createExercise({ ...this.exerciseForm, coachId }).subscribe({
         next: (newEx) => {
           this.exercises.push(this.mapExercise(newEx));
           this.closeExerciseModal();

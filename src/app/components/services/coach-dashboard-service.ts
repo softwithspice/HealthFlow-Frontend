@@ -23,6 +23,7 @@ export interface CoachWorkoutPlanSummaryDto {
   actif?: boolean;
   dateDebut?: string;
   dateFin?: string;
+  coachId?: string;
   exercices?: CoachExerciseDto[];
 }
 
@@ -61,6 +62,7 @@ export interface CoachExerciseDto {
   tempsReposSecondes: number | null;
   poidsKg: number | null;
   planExerciceId: number | null;
+  coachId?: string;
 }
 
 export interface CoachNotificationDto {
@@ -105,8 +107,11 @@ export class CoachDashboardService {
     });
   }
 
-  getExercises(): Observable<CoachExerciseDto[]> {
+  getExercises(coachId?: string): Observable<CoachExerciseDto[]> {
+    const params: any = {};
+    if (coachId) params['coachId'] = coachId;
     return this.http.get<CoachExerciseDto[]>('http://localhost:8084/api/exercices', {
+      params,
       headers: this.authHeaders(),
     });
   }
@@ -157,25 +162,25 @@ export class CoachDashboardService {
 
   // Plan CRUD methods
   createPlan(plan: Omit<CoachWorkoutPlanSummaryDto, 'id' | 'assignedClientsCount'>): Observable<CoachWorkoutPlanSummaryDto> {
-    return this.http.post<CoachWorkoutPlanSummaryDto>('http://localhost:8084/api/plans-exercice', plan, {
+    return this.http.post<CoachWorkoutPlanSummaryDto>('http://localhost:8084/api/plans-exercices', plan, {
       headers: this.authHeaders(),
     });
   }
 
   updatePlan(id: number, plan: Omit<CoachWorkoutPlanSummaryDto, 'id' | 'assignedClientsCount'>): Observable<CoachWorkoutPlanSummaryDto> {
-    return this.http.put<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercice/${id}`, plan, {
+    return this.http.put<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercices/${id}`, plan, {
       headers: this.authHeaders(),
     });
   }
 
   deletePlan(id: number): Observable<void> {
-    return this.http.delete<void>(`http://localhost:8084/api/plans-exercice/${id}`, {
+    return this.http.delete<void>(`http://localhost:8084/api/plans-exercices/${id}`, {
       headers: this.authHeaders(),
     });
   }
 
   getPlanById(id: number): Observable<CoachWorkoutPlanSummaryDto> {
-    return this.http.get<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercice/${id}`, {
+    return this.http.get<CoachWorkoutPlanSummaryDto>(`http://localhost:8084/api/plans-exercices/${id}`, {
       headers: this.authHeaders(),
     });
   }

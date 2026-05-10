@@ -1251,3 +1251,808 @@ th {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── CONVERSATIONS TAB ─────────────────────────────────────────────────── */
+.conv-section {
+  padding: 0;
+  height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+
+.conv-section app-conversation {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Preview card avatar in dashboard overview */
+.conv-item-avatar-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-radius: 6px;
+  padding-inline: 0.5rem;
+}
+
+.chat-item:hover {
+  background: var(--bg);
+}
+
+.chat-item:last-child {
+  border-bottom: none;
+}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.empty-state p:first-child {
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+/* ── Client Profile Modal ───────────────────────────────────────────────── */
+.client-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.client-profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.client-profile-section {
+  margin-bottom: 1.5rem;
+}
+
+.client-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--blue);
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.client-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.client-info-item {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem 0.85rem;
+}
+
+.client-info-item p {
+  margin: 0;
+}
+
+.client-info-item p:first-child {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+
+.client-info-item p:last-child {
+  font-size: 0.95rem;
+}
+
+/* ── Create Plan inline button in assignment modal ──────────────────────── */
+.create-plan-inline-btn {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.75rem;
+  border: 2px dashed var(--blue);
+  background: transparent;
+  color: var(--blue);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.create-plan-inline-btn:hover {
+  background: #eff6ff;
+}
+
+/* ── PROFILE PAGE ───────────────────────────────────────────────────────── */
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0;
+}
+
+.profile-loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--muted);
+}
+
+/* Hero card */
+.profile-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.profile-hero-bg {
+  height: 90px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+}
+
+.profile-hero-body {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1.75rem 1.5rem;
+  margin-top: -36px;
+}
+
+.profile-hero-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  flex-shrink: 0;
+}
+
+.profile-hero-info {
+  flex: 1;
+  padding-top: 0.5rem;
+}
+
+.profile-hero-info h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.4rem;
+}
+
+.profile-hero-role {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.profile-hero-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Stats row */
+.profile-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.profile-stat-card {
+  padding: 1rem;
+  text-align: center;
+}
+
+.profile-stat-card .kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0;
+  background: linear-gradient(135deg, #22c55e, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.profile-stat-card .kpi-label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0.25rem 0 0;
+}
+
+/* Tabs */
+.profile-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0;
+}
+
+.profile-tab-btn {
+  border: none;
+  background: transparent;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.profile-tab-btn.active {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+  font-weight: 700;
+}
+
+/* Alert */
+.profile-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.profile-alert.success {
+  background: #dcfce7;
+  color: #14532d;
+  border: 1px solid #86efac;
+}
+
+.profile-alert.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Section card */
+.profile-section-card {
+  padding: 1.5rem;
+}
+
+.profile-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+  color: var(--text);
+}
+
+/* Info grid (view mode) */
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.profile-info-item {
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.profile-info-full {
+  grid-column: 1 / -1;
+}
+
+.profile-info-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0 0 0.2rem;
+}
+
+.profile-info-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+
+/* Form grid (edit mode) */
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.profile-form-full {
+  grid-column: 1 / -1;
+}
+
+.profile-form-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Activity grid */
+.profile-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.profile-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.activity-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+/* Danger zone */
+.profile-danger-zone {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 1024px) {
+  .profile-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .profile-activity-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STYLE IMPROVEMENTS — transitions, hover states, variables, mobile polish
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables additions ─────────────────────────────────────────────── */
+:host {
+  --gradient: linear-gradient(135deg, #22c55e, #3b82f6);
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --green-bg: #dcfce7;
+  --blue-bg: #eff6ff;
+  --overlay: rgba(15, 23, 42, 0.55);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 2px 8px rgba(17, 24, 39, 0.06);
+  --shadow-md: 0 8px 24px rgba(17, 24, 39, 0.08);
+  --shadow-lg: 0 20px 50px rgba(17, 24, 39, 0.14);
+  --transition: 0.18s ease;
+}
+
+/* ── Button improvements ─────────────────────────────────────────────────── */
+.primary-btn {
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.primary-btn:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primary-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.ghost-btn {
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.ghost-btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.ghost-btn.danger:hover {
+  background: var(--red-bg);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+.ghost-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.icon-btn {
+  transition: background var(--transition), box-shadow var(--transition);
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Sidebar menu improvements ───────────────────────────────────────────── */
+.menu-item {
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.menu-item:hover {
+  background: var(--blue-bg);
+}
+
+.menu-item.active {
+  font-weight: 600;
+}
+
+.menu-item:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+/* ── Card improvements ───────────────────────────────────────────────────── */
+.card {
+  transition: box-shadow var(--transition);
+}
+
+.plan-card,
+.client-card,
+.exercise-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* ── RDV tab improvements ────────────────────────────────────────────────── */
+.rdv-tab-btn {
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  font-weight: 500;
+}
+
+.rdv-tab-btn:hover:not(.active) {
+  background: var(--blue-bg);
+  border-color: var(--blue);
+  color: var(--text);
+}
+
+/* ── Profile tab improvements ────────────────────────────────────────────── */
+.profile-tab-btn {
+  transition: color var(--transition), border-color var(--transition);
+}
+
+/* ── Form input improvements ─────────────────────────────────────────────── */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+.form-group input:hover:not(:focus),
+.form-group textarea:hover:not(:focus),
+.form-group select:hover:not(:focus) {
+  border-color: #c7d2e8;
+}
+
+/* ── Modal overlay improvement ───────────────────────────────────────────── */
+.modal-overlay {
+  background: var(--overlay);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.15s ease;
+}
+
+.modal-content {
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Section header typography fix ──────────────────────────────────────── */
+.section-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ── Overview card accent border animation ───────────────────────────────── */
+.overview-card {
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.overview-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Table row hover ─────────────────────────────────────────────────────── */
+tbody tr {
+  transition: background var(--transition);
+}
+
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* ── Notification list item hover ────────────────────────────────────────── */
+.notification-list li {
+  transition: background var(--transition), border-color var(--transition);
+  cursor: default;
+}
+
+.notification-list li:hover {
+  background: var(--bg);
+  border-color: #c7d2e8;
+}
+
+/* ── Analytics bar animation ─────────────────────────────────────────────── */
+.bar-fill {
+  transition: width 0.6s ease;
+}
+
+/* ── Search bar focus improvement ────────────────────────────────────────── */
+.search-bar {
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.search-bar:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ── User chip hover ─────────────────────────────────────────────────────── */
+.user-chip {
+  transition: background var(--transition), box-shadow var(--transition);
+  cursor: pointer;
+}
+
+.user-chip:hover {
+  background: var(--bg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Plan option hover ───────────────────────────────────────────────────── */
+.plan-opt {
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+  cursor: pointer;
+}
+
+.plan-opt:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--blue);
+}
+
+.plan-opt.featured {
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+}
+
+/* ── Save/Cancel button improvements ────────────────────────────────────── */
+.save-btn {
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.save-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  transition: background var(--transition), color var(--transition);
+}
+
+.cancel-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Profile info item hover ─────────────────────────────────────────────── */
+.profile-info-item {
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.profile-info-item:hover {
+  border-color: #c7d2e8;
+  background: #fff;
+}
+
+/* ── Activity item hover ─────────────────────────────────────────────────── */
+.profile-activity-item {
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.profile-activity-item:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Stat card hover ─────────────────────────────────────────────────────── */
+.profile-stat-card {
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.profile-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Loading banner animation ────────────────────────────────────────────── */
+.status-banner.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+/* ── Scrollbar styling ───────────────────────────────────────────────────── */
+.dashboard-main::-webkit-scrollbar,
+.assignment-list::-webkit-scrollbar,
+.exercise-selection-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-main::-webkit-scrollbar-track,
+.assignment-list::-webkit-scrollbar-track,
+.exercise-selection-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb,
+.assignment-list::-webkit-scrollbar-thumb,
+.exercise-selection-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+}
+
+.dashboard-main::-webkit-scrollbar-thumb:hover,
+.assignment-list::-webkit-scrollbar-thumb:hover {
+  background: #c7d2e8;
+}
+
+/* ── Mobile improvements ─────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .plans-grid,
+  .clients-grid,
+  .exercises-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .plans-options {
+    grid-template-columns: 1fr !important;
+  }
+
+  .plan-opt.featured {
+    transform: none;
+  }
+
+  .profile-stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .profile-activity-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .profile-info-grid,
+  .profile-form-grid,
+  .client-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-info-full,
+  .profile-form-full {
+    grid-column: 1 !important;
+  }
+
+  .sub-details {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .profile-hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .rdv-tabs {
+    flex-wrap: wrap;
+  }
+
+  .profile-tabs {
+    flex-wrap: wrap;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .split-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .modal-content {
+    width: 95% !important;
+    max-height: 95vh;
+  }
+
+  .search-bar {
+    max-width: 100%;
+  }
+
+  .top-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .overview-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-stats-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .profile-activity-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profile-hero-info h2 {
+    font-size: 1.1rem;
+  }
+
+  .header-actions .user-chip p.user-name {
+    display: none;
+  }
+}
