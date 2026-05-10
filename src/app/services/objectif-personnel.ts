@@ -8,7 +8,8 @@ import { ObjectifPersonnel } from '../interfaces/objectif-personnel';
 @Injectable({ providedIn: 'root' })
 export class ObjectifService {
 
-  private url = 'http://localhost:8084/objectifs';
+  private url = 'http://localhost:8084/api/objectifs';
+
 
   constructor(private http: HttpClient) {}
 

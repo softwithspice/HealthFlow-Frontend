@@ -8,7 +8,8 @@ import { SuiviQuotidien } from '../interfaces/suivi-quotidien';
 @Injectable({ providedIn: 'root' })
 export class SuiviService {
 
-  private url = 'http://localhost:8084/suivi';
+  private url = 'http://localhost:8084/api/suivi';
+
 
   constructor(private http: HttpClient) {}
 
